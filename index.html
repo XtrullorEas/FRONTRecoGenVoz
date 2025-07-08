@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictor de Género por Voz</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 Predictor de Género por Voz</h1>
+            <p>Sube un archivo WAV o graba desde tu micrófono para predecir el género</p>
+            <small id="apiInfo" style="opacity: 0.8; display: block; margin-top: 10px;">
+                Detectando API...
+            </small>
+        </div>
+
+        <div class="content">
+            <!-- Status de la API -->
+            <div class="status-section">
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Verificando conexión...</span>
+                </div>
+                <small id="statusDetails">Conectando con la API...</small>
+            </div>
+
+            <!-- Sección de Upload -->
+            <div class="section">
+                <h3>📁 Subir Archivo WAV</h3>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">🎵</div>
+                    <h4>Arrastra un archivo WAV aquí o haz clic para seleccionar</h4>
+                    <p>Formato soportado: WAV únicamente</p>
+                    <input type="file" id="fileInput" class="file-input" accept=".wav,audio/wav">
+                </div>
+                <div class="file-info" id="fileInfo"></div>
+                
+                <!-- Reproductor de audio -->
+                <div class="audio-player" id="audioPlayer" style="display: none;">
+                    <h4>🎵 Reproducir Audio</h4>
+                    <audio controls id="audioElement" style="width: 100%; margin: 10px 0;">
+                        Tu navegador no soporta el elemento audio.
+                    </audio>
+                    <div class="audio-controls">
+                        <button class="btn" id="playBtn">▶️ Reproducir</button>
+                        <button class="btn" id="downloadBtn">💾 Descargar</button>
+                        <button class="btn" id="predictBtn">🎯 Predecir Género</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de Grabación -->
+            <div class="section">
+                <h3>🎙️ Grabar desde Micrófono</h3>
+                <p style="margin-bottom: 20px; color: #666;">Usa tu micrófono para grabar audio y convertirlo a WAV</p>
+                
+                <div class="record-controls">
+                    <button class="btn record-btn" id="startRecordBtn">🔴 Iniciar Grabación</button>
+                    <button class="btn" id="stopRecordBtn" disabled>⏹️ Detener Grabación</button>
+                    <button class="btn" id="playRecordedBtn" disabled>▶️ Reproducir</button>
+                    <button class="btn" id="downloadRecordedBtn" disabled>💾 Descargar</button>
+                    <button class="btn" id="predictRecordedBtn" disabled>🎯 Predecir Género</button>
+                </div>
+                
+                <div id="recordingStatus" class="recording-status" style="display: none;">
+                    🔴 Grabando... Presiona "Detener Grabación" cuando termines
+                </div>
+                
+                <!-- Reproductor para audio grabado -->
+                <div class="audio-player" id="recordedAudioPlayer" style="display: none;">
+                    <h4>🎵 Audio Grabado</h4>
+                    <audio controls id="recordedAudioElement" style="width: 100%; margin: 10px 0;">
+                        Tu navegador no soporta el elemento audio.
+                    </audio>
+                </div>
+                
+                <div class="record-info" style="margin-top: 15px; padding: 15px; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 10px; color: #0d47a1;">
+                    <strong>ℹ️ Instrucciones:</strong>
+                    <ul style="margin-top: 10px; padding-left: 20px;">
+                        <li>Haz clic en "Iniciar Grabación" y permite el acceso al micrófono</li>
+                        <li>Habla claramente hacia el micrófono</li>
+                        <li>Haz clic en "Detener Grabación" cuando termines</li>
+                        <li>Reproduce el audio para verificar la calidad</li>
+                        <li>Más tarde podrás usar "Predecir Género" para analizar</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Procesando audio...</p>
+            </div>
+
+            <!-- Resultados -->
+            <div class="result-section" id="results" style="display: none;">
+                <h3>📊 Resultados de la Predicción</h3>
+                <div class="result-item">
+                    <span class="result-label">Género Predicho:</span>
+                    <span class="result-value" id="predictedGender">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Nivel de Confianza:</span>
+                    <span class="result-value" id="confidence">-</span>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <div class="result-item">
+                        <span class="result-label">Probabilidad Masculino:</span>
+                        <span class="result-value" id="maleProbability">-</span>
+                    </div>
+                    <div class="probability-bar">
+                        <div class="probability-fill male-bar" id="maleBar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <div class="result-item">
+                        <span class="result-label">Probabilidad Femenino:</span>
+                        <span class="result-value" id="femaleProbability">-</span>
+                    </div>
+                    <div class="probability-bar">
+                        <div class="probability-fill female-bar" id="femaleBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mensajes -->
+            <div id="messages"></div>
+        </div>
+    </div>
+
+    <script src="SimpleRecorderJs/js/recorder.js"></script>
+    <script src="simple-recorder.js"></script>
+    <script src="client.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

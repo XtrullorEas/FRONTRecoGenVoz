@@ -1,0 +1,350 @@
+// simple-recorder.js - Grabador de audio WAV con metadata usando Recorder.js
+
+class SimpleRecorder {
+    constructor(config = {}) {
+        this.recorder = null;
+        this.audioContext = null;
+        this.audioInput = null;
+        this.stream = null;
+        this.audioBlob = null;
+        this.audioUrl = null;
+        this.isRecording = false;
+        
+        // Configuración de audio con metadata
+        this.config = {
+            sampleRate: config.sampleRate || 44100,
+            channelCount: config.channelCount || 2,
+            bitDepth: config.bitDepth || 16,
+            bitRate: 0,
+            echoCancellation: config.echoCancellation !== false,
+            noiseSuppression: config.noiseSuppression !== false,
+            autoGainControl: config.autoGainControl !== false,
+            ...config
+        };
+        
+        // Calcular velocidad de bits
+        this.config.bitRate = this.config.sampleRate * this.config.channelCount * this.config.bitDepth;
+        
+        this.logConfig();
+    }
+    
+    logConfig() {
+        console.log('🎤 SimpleRecorder configurado con metadata:');
+        console.log(`- Velocidad de muestra: ${this.config.sampleRate} Hz`);
+        console.log(`- Canales: ${this.config.channelCount} (${this.config.channelCount === 1 ? 'Mono' : 'Estéreo'})`);
+        console.log(`- Profundidad de bits: ${this.config.bitDepth} bits`);
+        console.log(`- Velocidad de bits: ${this.config.bitRate} bps (${(this.config.bitRate / 1000).toFixed(1)} kbps)`);
+    }
+    
+    async initialize() {
+        try {
+            // Verificar que Recorder esté disponible (desde SimpleRecorderJs local)
+            if (typeof Recorder === 'undefined') {
+                console.error('❌ SimpleRecorderJs no está cargado correctamente');
+                return false;
+            }
+            
+            console.log('🎤 Inicializando grabación con SimpleRecorderJs local...');
+            
+            // Obtener stream del micrófono con configuración específica
+            this.stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    sampleRate: this.config.sampleRate,
+                    channelCount: this.config.channelCount,
+                    echoCancellation: this.config.echoCancellation,
+                    noiseSuppression: this.config.noiseSuppression,
+                    autoGainControl: this.config.autoGainControl
+                }
+            });
+            
+            console.log('✅ Micrófono configurado correctamente');
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Error al acceder al micrófono:', error);
+            return false;
+        }
+    }
+    
+    async setupAudioContext() {
+        if (!this.audioContext) {
+            // Crear contexto de audio
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Reanudar contexto si está suspendido
+            if (this.audioContext.state === 'suspended') {
+                await this.audioContext.resume();
+            }
+            
+            // Crear entrada de audio
+            this.audioInput = this.audioContext.createMediaStreamSource(this.stream);
+            
+            // Crear recorder usando SimpleRecorderJs local
+            this.recorder = new Recorder(this.audioInput, {
+                numChannels: this.config.channelCount
+            });
+            
+            console.log('✅ AudioContext configurado con SimpleRecorderJs local');
+            console.log(`📊 Sample Rate del contexto: ${this.audioContext.sampleRate} Hz`);
+            console.log(`📊 Configuración del recorder: ${this.config.channelCount} canales`);
+        }
+    }
+    
+    async startRecording() {
+        if (this.isRecording) {
+            console.warn('Ya hay una grabación en progreso');
+            return false;
+        }
+        
+        try {
+            // Inicializar si no está inicializado
+            if (!this.stream) {
+                const initialized = await this.initialize();
+                if (!initialized) {
+                    return false;
+                }
+            }
+            
+            // Configurar audio context
+            await this.setupAudioContext();
+            
+            // Limpiar grabación anterior
+            this.recorder.clear();
+            
+            // Iniciar grabación
+            this.recorder.record();
+            this.isRecording = true;
+            
+            console.log('🔴 Grabación iniciada con SimpleRecorderJs local');
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Error al iniciar grabación:', error);
+            return false;
+        }
+    }
+    
+    async stopRecording() {
+        if (!this.isRecording || !this.recorder) {
+            console.warn('No hay grabación en progreso');
+            return null;
+        }
+        
+        return new Promise((resolve) => {
+            try {
+                // Detener grabación
+                this.recorder.stop();
+                this.isRecording = false;
+                
+                console.log('⏹️ Grabación detenida');
+                
+                // Exportar como WAV usando SimpleRecorderJs
+                this.recorder.exportWAV((blob) => {
+                    if (!blob || blob.size === 0) {
+                        console.error('❌ Error: No se pudo generar el archivo WAV');
+                        resolve(null);
+                        return;
+                    }
+                    
+                    // Guardar blob y crear URL
+                    this.audioBlob = blob;
+                    this.audioUrl = URL.createObjectURL(blob);
+                    
+                    console.log('✅ Archivo WAV generado correctamente con SimpleRecorderJs');
+                    
+                    // Mostrar información del archivo con metadata
+                    this.displayFileInfo(blob);
+                    
+                    // Analizar metadata WAV
+                    this.analyzeWAVFile(blob);
+                    
+                    resolve(blob);
+                });
+                
+            } catch (error) {
+                console.error('❌ Error al detener grabación:', error);
+                resolve(null);
+            }
+        });
+    }
+    
+    displayFileInfo(blob) {
+        const sizeInBytes = blob.size;
+        const sizeInKB = (sizeInBytes / 1024).toFixed(2);
+        const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
+        
+        // Calcular duración estimada
+        const bytesPerSecond = (this.config.sampleRate * this.config.channelCount * this.config.bitDepth) / 8;
+        const estimatedDuration = Math.max(0, (sizeInBytes - 44) / bytesPerSecond);
+        
+        console.log('📊 Información del archivo WAV:');
+        console.log(`- Tamaño: ${sizeInBytes} bytes (${sizeInKB} KB / ${sizeInMB} MB)`);
+        console.log(`- Duración estimada: ${estimatedDuration.toFixed(2)} segundos`);
+        console.log(`- Tipo MIME: ${blob.type}`);
+        console.log(`- Formato: WAV PCM`);
+        console.log(`- Velocidad de muestra: ${this.config.sampleRate} Hz`);
+        console.log(`- Canales: ${this.config.channelCount} (${this.config.channelCount === 1 ? 'Mono' : 'Estéreo'})`);
+        console.log(`- Profundidad de bits: ${this.config.bitDepth} bits`);
+        console.log(`- Velocidad de bits: ${this.config.bitRate} bps (${(this.config.bitRate / 1000).toFixed(1)} kbps)`);
+    }
+    
+    analyzeWAVFile(blob) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const arrayBuffer = e.target.result;
+                const view = new DataView(arrayBuffer);
+                
+                // Leer header WAV
+                const riff = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+                const fileSize = view.getUint32(4, true);
+                const wave = String.fromCharCode(view.getUint8(8), view.getUint8(9), view.getUint8(10), view.getUint8(11));
+                const fmt = String.fromCharCode(view.getUint8(12), view.getUint8(13), view.getUint8(14), view.getUint8(15));
+                const audioFormat = view.getUint16(20, true);
+                const numChannels = view.getUint16(22, true);
+                const sampleRate = view.getUint32(24, true);
+                const byteRate = view.getUint32(28, true);
+                const blockAlign = view.getUint16(32, true);
+                const bitsPerSample = view.getUint16(34, true);
+                
+                console.log('🔍 Análisis del header WAV:');
+                console.log(`- Firma RIFF: ${riff}`);
+                console.log(`- Tamaño de archivo: ${fileSize} bytes`);
+                console.log(`- Formato: ${wave}`);
+                console.log(`- Formato de audio: ${audioFormat} (${audioFormat === 1 ? 'PCM' : 'Desconocido'})`);
+                console.log(`- Canales: ${numChannels}`);
+                console.log(`- Velocidad de muestra: ${sampleRate} Hz`);
+                console.log(`- Velocidad de bits: ${byteRate} bytes/seg`);
+                console.log(`- Alineación de bloque: ${blockAlign} bytes`);
+                console.log(`- Bits por muestra: ${bitsPerSample} bits`);
+                
+                // Validar metadata
+                const expectedByteRate = (sampleRate * numChannels * bitsPerSample) / 8;
+                const expectedBlockAlign = (numChannels * bitsPerSample) / 8;
+                
+                const isValid = 
+                    riff === 'RIFF' &&
+                    wave === 'WAVE' &&
+                    fmt === 'fmt ' &&
+                    audioFormat === 1 &&
+                    numChannels === this.config.channelCount &&
+                    sampleRate === this.config.sampleRate &&
+                    bitsPerSample === this.config.bitDepth &&
+                    byteRate === expectedByteRate &&
+                    blockAlign === expectedBlockAlign;
+                
+                console.log(`${isValid ? '✅' : '❌'} Metadata WAV ${isValid ? 'válida' : 'inválida'}`);
+                
+                if (!isValid) {
+                    console.warn('⚠️ Diferencias encontradas:');
+                    if (numChannels !== this.config.channelCount) {
+                        console.warn(`- Canales: esperado ${this.config.channelCount}, obtenido ${numChannels}`);
+                    }
+                    if (sampleRate !== this.config.sampleRate) {
+                        console.warn(`- Sample Rate: esperado ${this.config.sampleRate}, obtenido ${sampleRate}`);
+                    }
+                    if (bitsPerSample !== this.config.bitDepth) {
+                        console.warn(`- Bit Depth: esperado ${this.config.bitDepth}, obtenido ${bitsPerSample}`);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('❌ Error al analizar archivo WAV:', error);
+            }
+        };
+        
+        reader.readAsArrayBuffer(blob);
+    }
+    
+    getAudioInfo() {
+        if (!this.audioBlob) {
+            return null;
+        }
+        
+        const sizeInBytes = this.audioBlob.size;
+        const sizeInKB = (sizeInBytes / 1024).toFixed(2);
+        const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
+        
+        // Calcular duración estimada
+        const bytesPerSecond = (this.config.sampleRate * this.config.channelCount * this.config.bitDepth) / 8;
+        const estimatedDuration = Math.max(0, (sizeInBytes - 44) / bytesPerSecond);
+        
+        return {
+            size: {
+                bytes: sizeInBytes,
+                kb: sizeInKB,
+                mb: sizeInMB
+            },
+            duration: estimatedDuration,
+            format: 'WAV PCM',
+            mimeType: this.audioBlob.type,
+            config: { ...this.config }
+        };
+    }
+    
+    getAudioBlob() {
+        return this.audioBlob;
+    }
+    
+    getAudioUrl() {
+        return this.audioUrl;
+    }
+    
+    download(filename = null) {
+        if (!this.audioBlob || !this.audioUrl) {
+            console.error('❌ No hay audio para descargar');
+            return false;
+        }
+        
+        const defaultFilename = `grabacion_${this.config.sampleRate}hz_${this.config.channelCount}ch_${this.config.bitDepth}bit_${new Date().toISOString().slice(0,16).replace(/:/g, '-')}.wav`;
+        
+        const a = document.createElement('a');
+        a.href = this.audioUrl;
+        a.download = filename || defaultFilename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        console.log('💾 Descarga iniciada:', a.download);
+        return true;
+    }
+    
+    cleanup() {
+        try {
+            if (this.stream) {
+                this.stream.getTracks().forEach(track => track.stop());
+                this.stream = null;
+            }
+            
+            if (this.audioContext) {
+                this.audioContext.close();
+                this.audioContext = null;
+            }
+            
+            if (this.audioUrl) {
+                URL.revokeObjectURL(this.audioUrl);
+                this.audioUrl = null;
+            }
+            
+            this.recorder = null;
+            this.audioInput = null;
+            this.audioBlob = null;
+            this.isRecording = false;
+            
+            console.log('🧹 SimpleRecorder limpiado');
+            
+        } catch (error) {
+            console.error('❌ Error al limpiar SimpleRecorder:', error);
+        }
+    }
+}
+
+// Exportar para usar en otros scripts
+window.SimpleRecorder = SimpleRecorder;
+
+// Cleanup al cerrar la página
+window.addEventListener('beforeunload', () => {
+    if (window.recorder && window.recorder.cleanup) {
+        window.recorder.cleanup();
+    }
+});

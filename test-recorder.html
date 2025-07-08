@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba - SimpleRecorder WAV</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .record-btn {
+            background-color: #dc3545;
+        }
+        
+        .record-btn:hover {
+            background-color: #c82333;
+        }
+        
+        .record-btn.recording {
+            background-color: #fd7e14;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        .status.recording {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status.stopped {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .audio-container {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        audio {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .info {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border: 1px solid #90caf9;
+            border-radius: 10px;
+            color: #0d47a1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Prueba SimpleRecorder WAV</h1>
+        
+        <div class="info">
+            <strong>📋 Configuración de Audio:</strong><br>
+            <span id="audioConfig">Cargando configuración...</span>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn" class="record-btn">🔴 Iniciar Grabación</button>
+            <button id="stopBtn" disabled>⏹️ Detener Grabación</button>
+            <button id="playBtn" disabled>▶️ Reproducir</button>
+            <button id="downloadBtn" disabled>💾 Descargar</button>
+        </div>
+        
+        <div id="status" class="status stopped">Presiona "Iniciar Grabación" para comenzar</div>
+        
+        <div class="audio-container" id="audioContainer" style="display: none;">
+            <h3>🎵 Audio Grabado</h3>
+            <audio id="audioPlayer" controls></audio>
+        </div>
+        
+        <div class="info" id="fileInfo" style="display: none;">
+            <strong>📊 Información del Archivo:</strong><br>
+            <span id="fileDetails">Sin archivo</span>
+        </div>
+    </div>
+
+    <script src="SimpleRecorderJs/js/recorder.js"></script>
+    <script src="simple-recorder.js"></script>
+    <script>
+        // Configuración de audio
+        const audioConfig = {
+            sampleRate: 48000,
+            channelCount: 1,
+            bitDepth: 16,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+        };
+        
+        // Inicializar grabador
+        const recorder = new SimpleRecorder(audioConfig);
+        
+        // Elementos DOM
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const playBtn = document.getElementById('playBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const audioContainer = document.getElementById('audioContainer');
+        const status = document.getElementById('status');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileDetails = document.getElementById('fileDetails');
+        const audioConfigSpan = document.getElementById('audioConfig');
+        
+        // Variables
+        let isRecording = false;
+        let currentAudioFile = null;
+        
+        // Mostrar configuración
+        audioConfigSpan.innerHTML = `
+            Sample Rate: ${audioConfig.sampleRate} Hz<br>
+            Canales: ${audioConfig.channelCount} (${audioConfig.channelCount === 1 ? 'Mono' : 'Estéreo'})<br>
+            Bit Depth: ${audioConfig.bitDepth} bits<br>
+            Bit Rate: ${(audioConfig.sampleRate * audioConfig.channelCount * audioConfig.bitDepth / 1000).toFixed(1)} kbps
+        `;
+        
+        // Eventos
+        startBtn.addEventListener('click', startRecording);
+        stopBtn.addEventListener('click', stopRecording);
+        playBtn.addEventListener('click', playAudio);
+        downloadBtn.addEventListener('click', downloadAudio);
+        
+        async function startRecording() {
+            try {
+                updateStatus('Iniciando grabación...', 'recording');
+                
+                const started = await recorder.startRecording();
+                
+                if (started) {
+                    isRecording = true;
+                    startBtn.disabled = true;
+                    startBtn.classList.add('recording');
+                    stopBtn.disabled = false;
+                    playBtn.disabled = true;
+                    downloadBtn.disabled = true;
+                    
+                    updateStatus('🔴 Grabando... Presiona "Detener" cuando termines', 'recording');
+                } else {
+                    throw new Error('No se pudo iniciar la grabación');
+                }
+                
+            } catch (error) {
+                console.error('Error al iniciar grabación:', error);
+                updateStatus(`Error: ${error.message}`, 'error');
+                resetButtons();
+            }
+        }
+        
+        async function stopRecording() {
+            try {
+                updateStatus('Deteniendo grabación...', 'stopped');
+                
+                const audioBlob = await recorder.stopRecording();
+                
+                if (audioBlob) {
+                    // Crear archivo
+                    const timestamp = new Date().toISOString().slice(0,16).replace(/:/g, '-');
+                    currentAudioFile = new File([audioBlob], `grabacion_${timestamp}.wav`, {
+                        type: 'audio/wav'
+                    });
+                    
+                    // Configurar reproductor
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    audioPlayer.src = audioUrl;
+                    audioContainer.style.display = 'block';
+                    
+                    // Mostrar información
+                    showFileInfo();
+                    
+                    // Habilitar botones
+                    playBtn.disabled = false;
+                    downloadBtn.disabled = false;
+                    
+                    updateStatus('✅ Grabación completada exitosamente', 'stopped');
+                } else {
+                    throw new Error('No se pudo generar el archivo de audio');
+                }
+                
+            } catch (error) {
+                console.error('Error al detener grabación:', error);
+                updateStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                resetButtons();
+            }
+        }
+        
+        function playAudio() {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+                updateStatus('▶️ Reproduciendo audio...', 'stopped');
+            } else {
+                audioPlayer.pause();
+                updateStatus('⏸️ Audio pausado', 'stopped');
+            }
+        }
+        
+        function downloadAudio() {
+            if (currentAudioFile) {
+                const url = URL.createObjectURL(currentAudioFile);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = currentAudioFile.name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                updateStatus('💾 Descarga iniciada', 'stopped');
+            }
+        }
+        
+        function showFileInfo() {
+            const audioInfo = recorder.getAudioInfo();
+            if (audioInfo) {
+                fileDetails.innerHTML = `
+                    Nombre: ${currentAudioFile.name}<br>
+                    Tamaño: ${audioInfo.size.kb} KB (${audioInfo.size.mb} MB)<br>
+                    Duración: ${audioInfo.duration.toFixed(2)} segundos<br>
+                    Formato: ${audioInfo.format}<br>
+                    Sample Rate: ${audioInfo.config.sampleRate} Hz<br>
+                    Canales: ${audioInfo.config.channelCount}<br>
+                    Bit Depth: ${audioInfo.config.bitDepth} bits
+                `;
+                fileInfo.style.display = 'block';
+            }
+        }
+        
+        function updateStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+        
+        function resetButtons() {
+            isRecording = false;
+            startBtn.disabled = false;
+            startBtn.classList.remove('recording');
+            stopBtn.disabled = true;
+        }
+        
+        // Eventos del reproductor
+        audioPlayer.addEventListener('ended', () => {
+            updateStatus('Reproducción terminada', 'stopped');
+        });
+        
+        audioPlayer.addEventListener('pause', () => {
+            updateStatus('Reproducción pausada', 'stopped');
+        });
+        
+        // Cleanup
+        window.addEventListener('beforeunload', () => {
+            if (recorder) {
+                recorder.cleanup();
+            }
+        });
+    </script>
+</body>
+</html>

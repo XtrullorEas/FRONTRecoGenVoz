@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API - Predictor de Género por Voz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #dc3545;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result-box {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: white;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f8f9ff;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Test API - Predictor de Género por Voz</h1>
+            <p>Prueba la conexión con la API usando archivos WAV o grabación desde micrófono</p>
+        </div>
+
+        <div class="content">
+            <!-- Status de la API -->
+            <div class="test-section">
+                <h3>🔌 Estado de la API</h3>
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Verificando conexión...</span>
+                </div>
+                <button class="btn" onclick="testConnection()">🔄 Probar Conexión</button>
+                <div id="connectionResult" class="result-box"></div>
+            </div>
+
+            <!-- Test de Predicción -->
+            <div class="test-section">
+                <h3>🎵 Test de Predicción</h3>
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <div style="font-size: 3em; color: #667eea; margin-bottom: 15px;">🎵</div>
+                    <h4>Selecciona un archivo WAV para probar</h4>
+                    <p>Solo formato WAV soportado</p>
+                </div>
+                <input type="file" id="fileInput" class="file-input" accept=".wav,audio/wav">
+                <button class="btn" onclick="testPrediction()" id="predictBtn" disabled>🎯 Probar Predicción</button>
+                <div id="predictionResult" class="result-box"></div>
+            </div>
+
+            <!-- Test de Grabación -->
+            <div class="test-section">
+                <h3>🎙️ Test de Grabación</h3>
+                <button class="btn" onclick="testRecording()" id="recordTestBtn" style="background: #dc3545;">🎙️ Iniciar Grabación</button>
+                <div id="recordingTestStatus" style="display: none; margin-top: 15px; padding: 10px; background: #fff5f5; border: 1px solid #fed7d7; border-radius: 10px; color: #dc3545; text-align: center;">
+                    🔴 Grabando...
+                </div>
+                
+                <!-- Reproductor para pruebas -->
+                <div id="testAudioPlayer" style="display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 15px; text-align: center;">
+                    <h4>🎵 Audio Grabado</h4>
+                    <audio controls id="testAudioElement" style="width: 100%; margin: 10px 0;">
+                        Tu navegador no soporta el elemento audio.
+                    </audio>
+                    <div style="margin-top: 15px;">
+                        <button class="btn" onclick="playTestAudio()" id="playTestBtn" style="background: #ffc107; color: #212529;">▶️ Reproducir</button>
+                        <button class="btn" onclick="predictTestAudio()" id="predictTestBtn" style="background: #28a745; margin-left: 10px;">🎯 Predecir</button>
+                    </div>
+                </div>
+                
+                <div id="recordingResult" class="result-box"></div>
+            </div>
+
+            <!-- Información de la API -->
+            <div class="test-section">
+                <h3>📋 Información de la API</h3>
+                <div class="result-box">
+URL Actual: <span id="currentApiUrl">Cargando...</span>
+
+APIs Disponibles:
+- Local:  http://127.0.0.1:5000
+- Render: https://apirecogenvoz.onrender.com
+
+Repositorio: https://github.com/XtrullorEas/APIRecoGenVoz
+
+Endpoints disponibles:
+- GET /          → Health check
+- POST /predict  → Predicción por archivo WAV
+
+Funcionalidades:
+- Subir archivos WAV
+- Grabar desde micrófono y convertir a WAV
+- Análisis en tiempo real
+
+Formato soportado:
+- WAV únicamente
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="client.js"></script>
+    <script>
+        // Configuración de APIs - Comentar/Descomentar según necesites
+        // API Local (desarrollo)
+        const API_URL = 'http://127.0.0.1:5000';
+        
+        // API Render (producción)
+        //const API_URL = 'https://apirecogenvoz.onrender.com';
+        
+        let selectedFile = null;
+        let genderAPI = null;
+        let testRecordedFile = null;
+
+        // Inicializar API
+        document.addEventListener('DOMContentLoaded', function() {
+            // Crear instancia de la API
+            if (typeof GenderAPI !== 'undefined') {
+                genderAPI = new GenderAPI(API_URL);
+            }
+            
+            // Mostrar URL actual
+            document.getElementById('currentApiUrl').textContent = API_URL;
+            
+            testConnection();
+        });
+
+        // Configurar el input de archivo
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            selectedFile = e.target.files[0];
+            const predictBtn = document.getElementById('predictBtn');
+            
+            if (selectedFile) {
+                predictBtn.disabled = false;
+                predictBtn.textContent = `🎯 Probar con ${selectedFile.name}`;
+            } else {
+                predictBtn.disabled = true;
+                predictBtn.textContent = '🎯 Probar Predicción';
+            }
+        });
+
+        // Función para probar la conexión
+        async function testConnection() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const resultDiv = document.getElementById('connectionResult');
+            
+            statusText.textContent = 'Probando conexión...';
+            resultDiv.textContent = 'Conectando con la API...';
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${API_URL}/`);
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    statusDot.classList.add('connected');
+                    statusText.textContent = 'API Conectada ✅';
+                    
+                    resultDiv.innerHTML = `
+<div class="success">
+✅ CONEXIÓN EXITOSA
+Tiempo de respuesta: ${responseTime}ms
+Estado HTTP: ${response.status}
+
+Respuesta de la API:
+${JSON.stringify(data, null, 2)}
+</div>`;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Error de conexión ❌';
+                
+                resultDiv.innerHTML = `
+<div class="error">
+❌ ERROR DE CONEXIÓN
+${error.message}
+
+Posibles causas:
+- El servidor de Render está iniciándose (primera vez puede tardar 1-2 minutos)
+- Problemas de red o CORS
+- El servicio está temporalmente no disponible
+</div>`;
+            }
+        }
+
+        // Función para probar la predicción
+        async function testPrediction() {
+            if (!selectedFile) {
+                alert('Por favor selecciona un archivo WAV');
+                return;
+            }
+
+            // Validar que sea un archivo WAV
+            if (!selectedFile.name.toLowerCase().endsWith('.wav') && !selectedFile.type.includes('wav')) {
+                alert('Error: Solo se admiten archivos WAV');
+                return;
+            }
+
+            const resultDiv = document.getElementById('predictionResult');
+            const predictBtn = document.getElementById('predictBtn');
+            
+            predictBtn.disabled = true;
+            predictBtn.textContent = '⏳ Procesando...';
+            resultDiv.textContent = 'Subiendo archivo WAV y procesando...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                
+                const startTime = Date.now();
+                const response = await fetch(`${API_URL}/predict`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    resultDiv.innerHTML = `
+<div class="success">
+✅ PREDICCIÓN EXITOSA
+Archivo: ${selectedFile.name}
+Tamaño: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+Tiempo de procesamiento: ${responseTime}ms
+
+Resultado:
+${JSON.stringify(data, null, 2)}
+
+Interpretación:
+- Género predicho: ${data.gender === 'male' ? '👨 Masculino' : '👩 Femenino'}
+- Confianza: ${data.confidence} (${(data.confidence_score * 100).toFixed(1)}%)
+- Probabilidad masculino: ${(data.male_probability * 100).toFixed(1)}%
+- Probabilidad femenino: ${(data.female_probability * 100).toFixed(1)}%
+</div>`;
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(`HTTP ${response.status}: ${errorData.error || response.statusText}`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+<div class="error">
+❌ ERROR EN LA PREDICCIÓN
+${error.message}
+
+Archivo: ${selectedFile.name}
+Tamaño: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+
+Posibles causas:
+- Formato de archivo no válido (debe ser WAV)
+- Archivo demasiado grande
+- Error en el procesamiento del modelo
+- Problemas de conectividad
+</div>`;
+            } finally {
+                predictBtn.disabled = false;
+                predictBtn.textContent = `🎯 Probar con ${selectedFile.name}`;
+            }
+        }
+
+        // Función para probar la grabación
+        async function testRecording() {
+            if (!genderAPI) {
+                alert('Error: API no inicializada');
+                return;
+            }
+
+            const recordBtn = document.getElementById('recordTestBtn');
+            const recordingStatus = document.getElementById('recordingTestStatus');
+            const resultDiv = document.getElementById('recordingResult');
+            const audioPlayer = document.getElementById('testAudioPlayer');
+            const audioElement = document.getElementById('testAudioElement');
+            
+            if (!genderAPI.isRecording) {
+                // Iniciar grabación
+                try {
+                    await genderAPI.startRecording();
+                    recordBtn.textContent = '⏹️ Detener Grabación';
+                    recordBtn.style.background = '#28a745';
+                    recordingStatus.style.display = 'block';
+                    resultDiv.textContent = 'Grabación iniciada. Habla ahora...';
+                } catch (error) {
+                    resultDiv.innerHTML = `
+<div class="error">
+❌ ERROR AL INICIAR GRABACIÓN
+${error.message}
+
+Posibles causas:
+- Micrófono no disponible
+- Permisos denegados
+- Navegador no compatible
+</div>`;
+                }
+            } else {
+                // Detener grabación
+                try {
+                    recordBtn.disabled = true;
+                    recordBtn.textContent = '⏳ Procesando...';
+                    recordingStatus.style.display = 'none';
+                    resultDiv.textContent = 'Procesando grabación...';
+                    
+                    const startTime = Date.now();
+                    const file = await genderAPI.stopRecording();
+                    testRecordedFile = file;
+                    
+                    // Configurar reproductor de audio
+                    audioElement.src = URL.createObjectURL(file);
+                    audioPlayer.style.display = 'block';
+                    
+                    resultDiv.innerHTML = `
+<div class="success">
+✅ GRABACIÓN COMPLETADA
+Archivo generado: ${file.name}
+Tamaño: ${(file.size / 1024 / 1024).toFixed(2)} MB
+
+Puedes reproducir el audio antes de hacer la predicción.
+</div>`;
+                    
+                } catch (error) {
+                    resultDiv.innerHTML = `
+<div class="error">
+❌ ERROR EN LA GRABACIÓN
+${error.message}
+
+Posibles causas:
+- Error en el procesamiento del audio
+- Formato de audio no compatible
+</div>`;
+                } finally {
+                    recordBtn.disabled = false;
+                    recordBtn.textContent = '🎙️ Iniciar Grabación';
+                    recordBtn.style.background = '#dc3545';
+                }
+            }
+        }
+
+        // Función para reproducir audio de prueba
+        function playTestAudio() {
+            const audioElement = document.getElementById('testAudioElement');
+            if (audioElement.paused) {
+                audioElement.play();
+            } else {
+                audioElement.pause();
+            }
+        }
+
+        // Función para predecir audio de prueba
+        async function predictTestAudio() {
+            if (!testRecordedFile) {
+                alert('No hay archivo grabado para predecir');
+                return;
+            }
+
+            const predictBtn = document.getElementById('predictTestBtn');
+            const resultDiv = document.getElementById('recordingResult');
+            
+            try {
+                predictBtn.disabled = true;
+                predictBtn.textContent = '⏳ Analizando...';
+                
+                const startTime = Date.now();
+                const result = await genderAPI.predictFromFile(testRecordedFile);
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                resultDiv.innerHTML = `
+<div class="success">
+✅ PREDICCIÓN EXITOSA
+Archivo: ${testRecordedFile.name}
+Tamaño: ${(testRecordedFile.size / 1024 / 1024).toFixed(2)} MB
+Tiempo de procesamiento: ${responseTime}ms
+
+Resultado:
+${JSON.stringify(result, null, 2)}
+
+Interpretación:
+- Género predicho: ${result.gender === 'male' ? '👨 Masculino' : '👩 Femenino'}
+- Confianza: ${result.confidence} (${(result.confidence_score * 100).toFixed(1)}%)
+- Probabilidad masculino: ${(result.male_probability * 100).toFixed(1)}%
+- Probabilidad femenino: ${(result.female_probability * 100).toFixed(1)}%
+</div>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+<div class="error">
+❌ ERROR EN LA PREDICCIÓN
+${error.message}
+
+Posibles causas:
+- Problemas de conectividad con la API
+- Error en el procesamiento del modelo
+- Formato de audio no compatible
+</div>`;
+            } finally {
+                predictBtn.disabled = false;
+                predictBtn.textContent = '� Predecir';
+            }
+        }
+
+        // Función para reproducir audio de prueba
+        function playTestAudio() {
+            const audioElement = document.getElementById('testAudioElement');
+            audioElement.play();
+        }
+
+        // Función para predecir género del audio de prueba
+        async function predictTestAudio() {
+            const audioElement = document.getElementById('testAudioElement');
+            
+            if (!audioElement.src) {
+                alert('No hay audio grabado para predecir');
+                return;
+            }
+
+            const resultDiv = document.getElementById('recordingResult');
+            const predictBtn = document.getElementById('predictTestBtn');
+            
+            predictBtn.disabled = true;
+            predictBtn.textContent = '⏳ Procesando...';
+            resultDiv.textContent = 'Procesando audio grabado...';
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${API_URL}/predict`, {
+                    method: 'POST',
+                    body: JSON.stringify({ audio_url: audioElement.src }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    resultDiv.innerHTML = `
+<div class="success">
+✅ PREDICCIÓN EXITOSA
+Tiempo de procesamiento: ${responseTime}ms
+
+Resultado:
+${JSON.stringify(data, null, 2)}
+
+Interpretación:
+- Género predicho: ${data.gender === 'male' ? '👨 Masculino' : '👩 Femenino'}
+- Confianza: ${data.confidence} (${(data.confidence_score * 100).toFixed(1)}%)
+- Probabilidad masculino: ${(data.male_probability * 100).toFixed(1)}%
+- Probabilidad femenino: ${(data.female_probability * 100).toFixed(1)}%
+</div>`;
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(`HTTP ${response.status}: ${errorData.error || response.statusText}`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+<div class="error">
+❌ ERROR EN LA PREDICCIÓN
+${error.message}
+
+Posibles causas:
+- Problemas de conectividad
+- Error en el procesamiento del audio
+- Formato de audio no compatible
+</div>`;
+            } finally {
+                predictBtn.disabled = false;
+                predictBtn.textContent = '🎯 Predecir';
+            }
+        }
+
+        // Probar conexión al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mostrar URL actual
+            document.getElementById('currentApiUrl').textContent = API_URL;
+            
+            testConnection();
+        });
+    </script>
+</body>
+</html>
