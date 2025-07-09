@@ -2,10 +2,10 @@ class GenderAPI {
     constructor(apiUrl) {
         // Configuración de URLs - Comentar/Descomentar según necesites
         // API Local (desarrollo)
-        this.apiUrl = apiUrl || 'http://127.0.0.1:5000';
+        //this.apiUrl = apiUrl || 'http://127.0.0.1:5000';
         
         // API Render (producción)
-        //this.apiUrl = apiUrl || 'https://apirecogenvoz.onrender.com';
+        this.apiUrl = apiUrl || 'https://apirecogenvoz.onrender.com';
         
         console.log('🌐 GenderAPI inicializada con URL:', this.apiUrl);
     }

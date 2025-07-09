@@ -74,12 +74,12 @@
                     <span>Estado: Listo para iniciar</span>
                 </div>
                 
-                <!-- Área de transcripción -->
+                <!-- Área de transcripción (oculta - solo para procesamiento interno) -->
                 <div id="speechTranscript" class="speech-transcript empty" style="display: none;">
                     El texto reconocido aparecerá aquí mientras hablas...
                 </div>
                 
-                <!-- Controles de Text-to-Speech -->
+                <!-- Controles de Text-to-Speech (ocultos - reproducción automática) -->
                 <div id="textToSpeechControls" class="text-to-speech-controls" style="display: none;">
                     <h4>🔊 Text-to-Speech</h4>
                     <p style="margin: 10px 0; color: #555;">Reproduce el texto reconocido:</p>
@@ -108,10 +108,10 @@
                         <li>Haz clic en "Iniciar Grabación + Reconocimiento" para comenzar</li>
                         <li>Se iniciará la grabación WAV y el reconocimiento de voz simultáneamente</li>
                         <li>Habla claramente hacia el micrófono</li>
-                        <li>Ve el texto transcrito en tiempo real</li>
+                        <li>El texto se transcribe automáticamente en segundo plano</li>
                         <li>Haz clic en "Detener Grabación" cuando termines</li>
-                        <li>Usa "Reproducir Texto" para escuchar la transcripción con text-to-speech</li>
-                        <li>Luego puedes usar "Predecir Género" para analizar el audio</li>
+                        <li>Usa "Predecir Género" para analizar el audio</li>
+                        <li><strong>🔊 Automático:</strong> Después de la predicción, el texto se reproducirá automáticamente con la voz correspondiente al género predicho</li>
                     </ul>
                 </div>
             </div>

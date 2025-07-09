@@ -53,6 +53,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inicializar speech manager
     speechManager = new SpeechToTextManager();
     
+    // Hacer speechManager disponible globalmente
+    window.speechManager = speechManager;
+    
     // Mostrar configuración de audio
     console.log('🎤 Aplicación iniciada con configuración de audio:');
     console.log(`- Sample Rate: ${audioConfig.sampleRate} Hz`);
@@ -415,6 +418,16 @@ async function predictFile(file) {
 // Hacer función de predicción global
 window.predictFile = predictFile;
 
+// Función global para configurar GIFs personalizados
+window.setAvatarGifs = function(maleGifUrl, femaleGifUrl) {
+    if (window.speechManager) {
+        window.speechManager.setCustomGifs(maleGifUrl, femaleGifUrl);
+        console.log('✅ GIFs de avatar configurados correctamente');
+    } else {
+        console.warn('⚠️ speechManager no está disponible todavía');
+    }
+};
+
 function showFileInfo(file) {
     const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
     fileInfo.innerHTML = `
@@ -451,6 +464,16 @@ function showResults(result) {
     }, 100);
     
     results.style.display = 'block';
+    
+    // Reproducir TTS automáticamente según el género predicho
+    if (speechManager && speechManager.getTranscript()) {
+        setTimeout(() => {
+            const success = speechManager.playTTSByGender(result.gender);
+            if (success) {
+                showMessage(`🔊 Reproduciendo texto con voz ${result.gender === 'male' ? 'masculina' : 'femenina'}`, 'success');
+            }
+        }, 1000); // Esperar 1 segundo después de mostrar los resultados
+    }
 }
 
 function showMessage(message, type) {
