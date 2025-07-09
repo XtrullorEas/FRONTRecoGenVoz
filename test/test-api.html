@@ -142,6 +142,71 @@
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
+        
+        /* Estilos para reconocimiento de voz */
+        .speech-section {
+            background: #e8f5e8;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px solid #4CAF50;
+        }
+        
+        .speech-controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .speech-btn {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .speech-btn:hover {
+            background: #45a049;
+        }
+        
+        .speech-btn.recording {
+            background: #f44336;
+            animation: pulse 1s infinite;
+        }
+        
+        .transcript-area {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 150px;
+            font-size: 16px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            margin: 15px 0;
+        }
+        
+        .transcript-area.empty {
+            color: #999;
+            font-style: italic;
+        }
+        
+        .speech-status {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .speech-status.listening {
+            background-color: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
+        }
+        
+        .speech-status.stopped {
+            background-color: #f2dede;
+            color: #a94442;
+            border: 1px solid #ebccd1;
+        }
     </style>
 </head>
 <body>
@@ -199,6 +264,36 @@
                 <div id="recordingResult" class="result-box"></div>
             </div>
 
+            <!-- Nueva sección: Reconocimiento de Voz -->
+            <div class="speech-section">
+                <h3>🗣️ Reconocimiento de Voz (Speech-to-Text + Predicción)</h3>
+                <p style="margin-bottom: 20px; color: #555;">Habla al micrófono para convertir tu voz a texto y luego predecir el género</p>
+                
+                <div class="speech-controls">
+                    <button class="btn speech-btn" id="speechStartBtn" onclick="startSpeechRecognition()">🎤 Iniciar Reconocimiento</button>
+                    <button class="btn speech-btn" id="speechStopBtn" onclick="stopSpeechRecognition()" disabled>⏹️ Detener</button>
+                    <button class="btn" id="speechClearBtn" onclick="clearTranscript()">🧹 Limpiar</button>
+                    <button class="btn" id="speechPredictBtn" onclick="predictFromSpeech()" disabled style="background: #9C27B0;">🎯 Predecir Género</button>
+                </div>
+                
+                <div id="speechStatus" class="speech-status stopped">Estado: Listo para iniciar</div>
+                
+                <div class="transcript-area empty" id="transcriptArea">El texto de reconocimiento de voz aparecerá aquí...</div>
+                
+                <div id="speechResult" class="result-box" style="display: none;"></div>
+                
+                <div style="margin-top: 15px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; color: #856404;">
+                    <strong>ℹ️ Cómo funciona:</strong>
+                    <ol style="margin-top: 10px; padding-left: 20px;">
+                        <li>Haz clic en "Iniciar Reconocimiento" y permite acceso al micrófono</li>
+                        <li>Habla claramente en español</li>
+                        <li>El texto aparecerá en tiempo real</li>
+                        <li>Haz clic en "Detener" cuando termines</li>
+                        <li>Usa "Predecir Género" para enviar el audio a la API de análisis</li>
+                    </ol>
+                </div>
+            </div>
+
             <!-- Información de la API -->
             <div class="test-section">
                 <h3>📋 Información de la API</h3>
@@ -227,7 +322,7 @@ Formato soportado:
         </div>
     </div>
 
-    <script src="client.js"></script>
+    <script src="../SimpleRecorderJs/recorder.js"></script>
     <script>
         // Configuración de APIs - Comentar/Descomentar según necesites
         // API Local (desarrollo)
@@ -239,6 +334,13 @@ Formato soportado:
         let selectedFile = null;
         let genderAPI = null;
         let testRecordedFile = null;
+        
+        // Variables para reconocimiento de voz
+        let speechRecognition = null;
+        let isListening = false;
+        let finalTranscript = '';
+        let speechRecorder = null; // SimpleRecorder para generar WAV
+        let speechAudioBlob = null;
 
         // Inicializar API
         document.addEventListener('DOMContentLoaded', function() {
@@ -249,6 +351,10 @@ Formato soportado:
             
             // Mostrar URL actual
             document.getElementById('currentApiUrl').textContent = API_URL;
+            
+            // Inicializar reconocimiento de voz
+            initSpeechRecognition();
+            updateSpeechStatus('Listo para iniciar', false);
             
             testConnection();
         });
@@ -604,10 +710,386 @@ Posibles causas:
             }
         }
 
+        // === FUNCIONES DE RECONOCIMIENTO DE VOZ ===
+        
+        // Inicializar reconocimiento de voz
+        function initSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.');
+                return false;
+            }
+            
+            speechRecognition = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
+            speechRecognition.lang = 'es-ES';
+            speechRecognition.continuous = true;
+            speechRecognition.interimResults = true;
+            
+            speechRecognition.onstart = () => {
+                console.log('Reconocimiento de voz iniciado');
+                updateSpeechStatus('Escuchando...', true);
+                isListening = true;
+                document.getElementById('speechStartBtn').disabled = true;
+                document.getElementById('speechStopBtn').disabled = false;
+                document.getElementById('speechStartBtn').classList.add('recording');
+            };
+            
+            speechRecognition.onend = () => {
+                console.log('Reconocimiento de voz terminado');
+                updateSpeechStatus('Detenido', false);
+                isListening = false;
+                document.getElementById('speechStartBtn').disabled = false;
+                document.getElementById('speechStopBtn').disabled = true;
+                document.getElementById('speechStartBtn').classList.remove('recording');
+                
+                // Habilitar el botón de predicción si hay texto
+                if (finalTranscript.trim() !== '') {
+                    document.getElementById('speechPredictBtn').disabled = false;
+                }
+            };
+            
+            speechRecognition.onerror = (event) => {
+                console.error('Error en el reconocimiento de voz:', event.error);
+                let errorMessage = 'Error desconocido';
+                
+                switch(event.error) {
+                    case 'no-speech':
+                        errorMessage = 'No se detectó habla';
+                        break;
+                    case 'audio-capture':
+                        errorMessage = 'No se pudo capturar audio';
+                        break;
+                    case 'not-allowed':
+                        errorMessage = 'Permisos de micrófono denegados';
+                        break;
+                    case 'network':
+                        errorMessage = 'Error de red';
+                        break;
+                    default:
+                        errorMessage = `Error: ${event.error}`;
+                }
+                
+                updateSpeechStatus(errorMessage, false);
+            };
+            
+            speechRecognition.onresult = (event) => {
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                const displayText = finalTranscript + interimTranscript;
+                updateTranscriptDisplay(displayText);
+                
+                console.log('Transcripción:', displayText);
+            };
+            
+            return true;
+        }
+        
+        // Función para actualizar el estado del reconocimiento
+        function updateSpeechStatus(message, isListeningStatus) {
+            const statusDiv = document.getElementById('speechStatus');
+            statusDiv.textContent = `Estado: ${message}`;
+            statusDiv.className = `speech-status ${isListeningStatus ? 'listening' : 'stopped'}`;
+        }
+        
+        // Función para actualizar la transcripción
+        function updateTranscriptDisplay(text) {
+            const transcriptArea = document.getElementById('transcriptArea');
+            if (text.trim() === '') {
+                transcriptArea.textContent = 'El texto de reconocimiento de voz aparecerá aquí...';
+                transcriptArea.className = 'transcript-area empty';
+            } else {
+                transcriptArea.textContent = text;
+                transcriptArea.className = 'transcript-area';
+            }
+        }
+        
+        // Iniciar reconocimiento de voz
+        async function startSpeechRecognition() {
+            if (!speechRecognition) {
+                if (!initSpeechRecognition()) {
+                    return;
+                }
+            }
+            
+            if (!isListening) {
+                try {
+                    // También iniciar grabación de audio para enviar a la API
+                    await startAudioRecording();
+                    speechRecognition.start();
+                } catch (error) {
+                    console.error('Error al iniciar reconocimiento:', error);
+                    updateSpeechStatus('Error al iniciar', false);
+                }
+            }
+        }
+        
+        // Detener reconocimiento de voz
+        async function stopSpeechRecognition() {
+            if (isListening && speechRecognition) {
+                speechRecognition.stop();
+                
+                // Esperar a que termine la grabación WAV
+                await stopAudioRecording();
+            }
+        }
+        
+        // Limpiar transcripción
+        function clearTranscript() {
+            finalTranscript = '';
+            updateTranscriptDisplay('');
+            document.getElementById('speechPredictBtn').disabled = true;
+            document.getElementById('speechResult').style.display = 'none';
+            console.log('Transcripción limpiada');
+        }
+        
+        // Iniciar grabación de audio usando SimpleRecorderJs (genera WAV real)
+        async function startAudioRecording() {
+            try {
+                console.log('🎙️ Iniciando grabación WAV con SimpleRecorderJs...');
+                
+                // Crear instancia de SimpleRecorder si no existe
+                if (!speechRecorder) {
+                    // Verificar que Recorder esté disponible
+                    if (typeof Recorder === 'undefined') {
+                        throw new Error('SimpleRecorderJs no está cargado. Verifica que recorder.js esté incluido.');
+                    }
+                    
+                    // Obtener stream del micrófono
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            sampleRate: 44100,
+                            channelCount: 1, // Mono para reducir tamaño
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        }
+                    });
+                    
+                    // Crear contexto de audio
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // Reanudar contexto si está suspendido
+                    if (audioContext.state === 'suspended') {
+                        await audioContext.resume();
+                    }
+                    
+                    // Crear entrada de audio
+                    const audioInput = audioContext.createMediaStreamSource(stream);
+                    
+                    // Crear recorder con SimpleRecorderJs (1 canal = mono)
+                    speechRecorder = new Recorder(audioInput, {
+                        numChannels: 1
+                    });
+                    
+                    console.log('✅ SimpleRecorder configurado para WAV mono');
+                }
+                
+                // Limpiar grabación anterior
+                speechRecorder.clear();
+                
+                // Iniciar grabación
+                speechRecorder.record();
+                
+                console.log('🔴 Grabación WAV iniciada');
+                
+            } catch (error) {
+                console.error('❌ Error al iniciar grabación WAV:', error);
+                throw error;
+            }
+        }
+        
+        // Detener grabación de audio y generar WAV
+        function stopAudioRecording() {
+            return new Promise((resolve) => {
+                if (!speechRecorder) {
+                    console.warn('No hay grabación en progreso');
+                    resolve();
+                    return;
+                }
+                
+                try {
+                    // Detener grabación
+                    speechRecorder.stop();
+                    console.log('⏹️ Grabación WAV detenida');
+                    
+                    // Exportar como WAV usando SimpleRecorderJs
+                    speechRecorder.exportWAV((blob) => {
+                        speechAudioBlob = blob;
+                        
+                        console.log('✅ Archivo WAV generado:', {
+                            size: blob.size + ' bytes',
+                            type: blob.type,
+                            sizeKB: (blob.size / 1024).toFixed(2) + ' KB'
+                        });
+                        
+                        resolve();
+                    });
+                    
+                } catch (error) {
+                    console.error('❌ Error al detener grabación:', error);
+                    resolve();
+                }
+            });
+        }
+        
+        // Predecir género desde el speech usando archivo WAV real
+        async function predictFromSpeech() {
+            if (!speechAudioBlob) {
+                alert('No hay audio grabado para predecir. Primero graba algo de audio.');
+                return;
+            }
+            
+            if (finalTranscript.trim() === '') {
+                alert('No hay texto transcrito. Primero habla al micrófono.');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('speechResult');
+            const predictBtn = document.getElementById('speechPredictBtn');
+            
+            predictBtn.disabled = true;
+            predictBtn.textContent = '⏳ Analizando...';
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Preparando archivo WAV para envío a la API...';
+            
+            try {
+                // Log de información del archivo WAV
+                console.log('🔍 Información del archivo WAV generado:', {
+                    size: speechAudioBlob.size,
+                    type: speechAudioBlob.type,
+                    sizeKB: (speechAudioBlob.size / 1024).toFixed(2)
+                });
+                
+                // Crear archivo WAV (SimpleRecorderJs ya genera WAV real)
+                const wavFile = new File([speechAudioBlob], 'speech-recording.wav', { 
+                    type: 'audio/wav' 
+                });
+                
+                console.log('📦 Archivo WAV creado:', {
+                    name: wavFile.name,
+                    size: wavFile.size,
+                    type: wavFile.type
+                });
+                
+                resultDiv.innerHTML = `
+Enviando archivo WAV a la API para predicción de género...
+- Archivo: ${wavFile.name}
+- Tamaño: ${(wavFile.size / 1024).toFixed(2)} KB
+- Tipo: ${wavFile.type} ✅ (WAV Real)
+- Texto transcrito: "${finalTranscript.trim()}"
+`;
+                
+                // Crear FormData igual que en el index.html
+                const formData = new FormData();
+                formData.append('file', wavFile);
+                
+                console.log('📤 Enviando FormData con archivo WAV:', wavFile.name);
+                
+                const startTime = Date.now();
+                const response = await fetch(`${API_URL}/predict`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                console.log('📡 Respuesta del servidor:', {
+                    status: response.status,
+                    statusText: response.statusText
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    resultDiv.innerHTML = `
+<div class="success">
+✅ PREDICCIÓN EXITOSA
+Texto transcrito: "${finalTranscript.trim()}"
+Archivo enviado: ${wavFile.name}
+Tamaño del audio: ${(speechAudioBlob.size / 1024).toFixed(2)} KB
+Tipo de archivo: ${wavFile.type} ✅ WAV Real
+Tiempo de procesamiento: ${responseTime}ms
+
+Resultado del análisis:
+${JSON.stringify(data, null, 2)}
+
+Interpretación:
+- Género predicho: ${data.gender === 'male' ? '👨 Masculino' : '👩 Femenino'}
+- Confianza: ${data.confidence} (${(data.confidence_score * 100).toFixed(1)}%)
+- Probabilidad masculino: ${(data.male_probability * 100).toFixed(1)}%
+- Probabilidad femenino: ${(data.female_probability * 100).toFixed(1)}%
+
+Detalles técnicos:
+- ✅ Texto reconocido en tiempo real
+- ✅ Audio grabado en formato WAV real usando SimpleRecorderJs
+- ✅ Archivo WAV enviado exitosamente a la API
+- ✅ Análisis de patrones vocales completado
+</div>`;
+                } else {
+                    // Intentar obtener el error del servidor
+                    let errorData;
+                    try {
+                        errorData = await response.json();
+                    } catch (e) {
+                        errorData = { error: await response.text() };
+                    }
+                    
+                    console.error('❌ Error del servidor:', errorData);
+                    
+                    throw new Error(`HTTP ${response.status}: ${errorData.error || response.statusText}`);
+                }
+            } catch (error) {
+                console.error('❌ Error en predictFromSpeech:', error);
+                
+                resultDiv.innerHTML = `
+<div class="error">
+❌ ERROR EN LA PREDICCIÓN
+${error.message}
+
+Detalles del archivo:
+- Texto transcrito: "${finalTranscript.trim()}"
+- Tamaño del audio: ${speechAudioBlob ? (speechAudioBlob.size / 1024).toFixed(2) + ' KB' : 'N/A'}
+- Tipo de audio: ${speechAudioBlob ? speechAudioBlob.type : 'N/A'}
+- Formato: WAV Real (SimpleRecorderJs)
+
+Posibles causas:
+- Error en el servidor de la API
+- Problemas de conectividad
+- El servidor puede estar procesando otro archivo
+
+Solución:
+- Este archivo es WAV real, igual que el que funciona en index.html
+- Verifica que la API esté funcionando correctamente
+- Intenta de nuevo en unos segundos
+</div>`;
+            } finally {
+                predictBtn.disabled = false;
+                predictBtn.textContent = '🎯 Predecir Género';
+            }
+        }
+
         // Probar conexión al cargar la página
         document.addEventListener('DOMContentLoaded', function() {
+            // Crear instancia de la API
+            if (typeof GenderAPI !== 'undefined') {
+                genderAPI = new GenderAPI(API_URL);
+            }
+            
             // Mostrar URL actual
             document.getElementById('currentApiUrl').textContent = API_URL;
+            
+            // Inicializar reconocimiento de voz
+            initSpeechRecognition();
+            updateSpeechStatus('Listo para iniciar', false);
             
             testConnection();
         });

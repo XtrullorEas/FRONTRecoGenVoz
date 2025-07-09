@@ -14,6 +14,9 @@ const audioConfig = {
 // Inicializar grabador con configuración de metadata
 const recorder = new SimpleRecorder(audioConfig);
 
+// Inicializar manager de speech-to-text
+let speechManager = null;
+
 // Hacer recorder disponible globalmente
 window.recorder = recorder;
 
@@ -46,6 +49,9 @@ window.currentFile = null;
 document.addEventListener('DOMContentLoaded', function() {
     checkAPIConnection();
     setupEventListeners();
+    
+    // Inicializar speech manager
+    speechManager = new SpeechToTextManager();
     
     // Mostrar configuración de audio
     console.log('🎤 Aplicación iniciada con configuración de audio:');
@@ -169,21 +175,32 @@ async function startRecording() {
         // Mostrar estado de grabación
         updateRecordingUI(true);
         
+        // Iniciar reconocimiento de voz
+        if (speechManager) {
+            speechManager.startRecognition();
+        }
+        
         // Usar SimpleRecorder.js para iniciar la grabación
         const started = await recorder.startRecording();
         
         if (started) {
             isRecording = true;
             console.log('✅ Grabación iniciada exitosamente');
-            showMessage('🎤 Grabación iniciada - Habla claramente hacia el micrófono', 'success');
+            showMessage('🎤 Grabación y reconocimiento iniciados - Habla claramente hacia el micrófono', 'success');
         } else {
             updateRecordingUI(false);
+            if (speechManager) {
+                speechManager.stopRecognition();
+            }
             showMessage('❌ Error al iniciar la grabación', 'error');
         }
         
     } catch (error) {
         console.error('❌ Error al iniciar grabación:', error);
         updateRecordingUI(false);
+        if (speechManager) {
+            speechManager.stopRecognition();
+        }
         showMessage(`❌ Error al iniciar grabación: ${error.message}`, 'error');
     }
 }
@@ -191,6 +208,11 @@ async function startRecording() {
 async function stopRecording() {
     try {
         console.log('⏹️ Deteniendo grabación...');
+        
+        // Detener reconocimiento de voz
+        if (speechManager) {
+            speechManager.stopRecognition();
+        }
         
         // Detener grabación usando SimpleRecorder.js
         const audioBlob = await recorder.stopRecording();
@@ -219,7 +241,9 @@ async function stopRecording() {
             isRecording = false;
             
             console.log('✅ Grabación completada exitosamente');
-            showMessage('✅ Grabación completada - Archivo WAV generado con metadata', 'success');
+            const transcript = speechManager ? speechManager.getTranscript() : '';
+            const transcriptInfo = transcript ? ` - Texto reconocido: "${transcript.substring(0, 50)}${transcript.length > 50 ? '...' : ''}"` : '';
+            showMessage(`✅ Grabación completada - Archivo WAV generado con metadata${transcriptInfo}`, 'success');
             
         } else {
             throw new Error('No se pudo generar el archivo de audio');
@@ -228,6 +252,9 @@ async function stopRecording() {
     } catch (error) {
         console.error('❌ Error al detener grabación:', error);
         updateRecordingUI(false);
+        if (speechManager) {
+            speechManager.stopRecognition();
+        }
         isRecording = false;
         showMessage(`❌ Error al detener grabación: ${error.message}`, 'error');
     }
@@ -243,6 +270,11 @@ function updateRecordingUI(recording) {
         startRecordBtn.classList.add('recording');
         stopRecordBtn.disabled = false;
         recordingStatus.style.display = 'block';
+        
+        // Limpiar transcripción anterior al iniciar nueva grabación
+        if (speechManager) {
+            speechManager.clearTranscript();
+        }
         
         // Deshabilitar botones de audio grabado
         enableRecordedAudioButtons(false);

@@ -10,7 +10,7 @@
     <div class="container">
         <div class="header">
             <h1>🎤 Predictor de Género por Voz</h1>
-            <p>Sube un archivo WAV o graba desde tu micrófono para predecir el género</p>
+            <p>Graba desde tu micrófono con reconocimiento de voz en tiempo real para predecir el género</p>
             <small id="apiInfo" style="opacity: 0.8; display: block; margin-top: 10px;">
                 Detectando API...
             </small>
@@ -26,8 +26,8 @@
                 <small id="statusDetails">Conectando con la API...</small>
             </div>
 
-            <!-- Sección de Upload -->
-            <div class="section">
+            <!-- Sección de Upload (Oculta - funcionalidad principal es grabación desde micrófono) -->
+            <div class="section" style="display: none;">
                 <h3>📁 Subir Archivo WAV</h3>
                 <div class="upload-area" id="uploadArea">
                     <div class="upload-icon">🎵</div>
@@ -53,11 +53,11 @@
 
             <!-- Sección de Grabación -->
             <div class="section">
-                <h3>🎙️ Grabar desde Micrófono</h3>
-                <p style="margin-bottom: 20px; color: #666;">Usa tu micrófono para grabar audio y convertirlo a WAV</p>
+                <h3>🎙️ Grabar desde Micrófono + Reconocimiento de Voz</h3>
+                <p style="margin-bottom: 20px; color: #666;">Graba audio en WAV y obtén la transcripción en tiempo real</p>
                 
                 <div class="record-controls">
-                    <button class="btn record-btn" id="startRecordBtn">🔴 Iniciar Grabación</button>
+                    <button class="btn record-btn" id="startRecordBtn">🔴 Iniciar Grabación + Reconocimiento</button>
                     <button class="btn" id="stopRecordBtn" disabled>⏹️ Detener Grabación</button>
                     <button class="btn" id="playRecordedBtn" disabled>▶️ Reproducir</button>
                     <button class="btn" id="downloadRecordedBtn" disabled>💾 Descargar</button>
@@ -66,6 +66,32 @@
                 
                 <div id="recordingStatus" class="recording-status" style="display: none;">
                     🔴 Grabando... Presiona "Detener Grabación" cuando termines
+                </div>
+                
+                <!-- Estado del reconocimiento de voz -->
+                <div id="speechStatus" class="speech-status stopped" style="display: none;">
+                    <div class="speech-status-icon"></div>
+                    <span>Estado: Listo para iniciar</span>
+                </div>
+                
+                <!-- Área de transcripción -->
+                <div id="speechTranscript" class="speech-transcript empty" style="display: none;">
+                    El texto reconocido aparecerá aquí mientras hablas...
+                </div>
+                
+                <!-- Controles de Text-to-Speech -->
+                <div id="textToSpeechControls" class="text-to-speech-controls" style="display: none;">
+                    <h4>🔊 Text-to-Speech</h4>
+                    <p style="margin: 10px 0; color: #555;">Reproduce el texto reconocido:</p>
+                    <button class="tts-btn" id="speakBtn">🔊 Reproducir Texto</button>
+                    <button class="tts-btn" id="pauseBtn" disabled>⏸️ Pausar</button>
+                    <button class="tts-btn" id="stopSpeakBtn" disabled>⏹️ Detener</button>
+                    <div style="margin-top: 10px;">
+                        <label for="voiceSelect" style="font-size: 14px; color: #666;">Voz:</label>
+                        <select id="voiceSelect" style="margin-left: 10px; padding: 5px; border-radius: 5px; border: 1px solid #ddd;">
+                            <option value="">Seleccionar voz...</option>
+                        </select>
+                    </div>
                 </div>
                 
                 <!-- Reproductor para audio grabado -->
@@ -79,11 +105,13 @@
                 <div class="record-info" style="margin-top: 15px; padding: 15px; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 10px; color: #0d47a1;">
                     <strong>ℹ️ Instrucciones:</strong>
                     <ul style="margin-top: 10px; padding-left: 20px;">
-                        <li>Haz clic en "Iniciar Grabación" y permite el acceso al micrófono</li>
+                        <li>Haz clic en "Iniciar Grabación + Reconocimiento" para comenzar</li>
+                        <li>Se iniciará la grabación WAV y el reconocimiento de voz simultáneamente</li>
                         <li>Habla claramente hacia el micrófono</li>
+                        <li>Ve el texto transcrito en tiempo real</li>
                         <li>Haz clic en "Detener Grabación" cuando termines</li>
-                        <li>Reproduce el audio para verificar la calidad</li>
-                        <li>Más tarde podrás usar "Predecir Género" para analizar</li>
+                        <li>Usa "Reproducir Texto" para escuchar la transcripción con text-to-speech</li>
+                        <li>Luego puedes usar "Predecir Género" para analizar el audio</li>
                     </ul>
                 </div>
             </div>
@@ -134,6 +162,7 @@
 
     <script src="SimpleRecorderJs/recorder.js"></script>
     <script src="js/simple-recorder.js"></script>
+    <script src="js/speech-to-text.js"></script>
     <script src="js/client.js"></script>
     <script src="js/app.js"></script>
 </body>
