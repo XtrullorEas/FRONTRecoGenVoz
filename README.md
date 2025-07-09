@@ -11,6 +11,33 @@ Una aplicación web que utiliza inteligencia artificial para predecir el género
 - **🎵 Reproducción**: Permite reproducir el audio antes del análisis
 - **💾 Descarga**: Descarga archivos WAV grabados con metadata completa
 
+## 🏗️ Arquitectura del Sistema
+
+### Organización de Archivos
+El proyecto está organizado de manera modular para facilitar el mantenimiento y desarrollo:
+
+#### 📁 **Directorio `/js/`**
+- **`app.js`**: Lógica principal de la aplicación, manejo de eventos y coordinación entre componentes
+- **`client.js`**: Cliente HTTP para comunicación con la API backend de predicción
+- **`simple-recorder.js`**: Wrapper de alto nivel que abstrae la funcionalidad de grabación
+
+#### 🎨 **Directorio `/css/`**
+- **`styles.css`**: Estilos principales de la interfaz de usuario
+
+#### 🧪 **Directorio `/test/`**
+- **`test-recorder.html`**: Página dedicada para probar funcionalidades de grabación
+- **`test-api.html`**: Herramientas para verificar conectividad y respuestas de la API
+
+#### ⚙️ **Directorio `/SimpleRecorderJs/`**
+- **`recorder.js`**: Librería core compilada que maneja Web Audio API y generación de WAV
+
+### Flujo de Datos
+```
+Usuario → index.html → js/app.js → js/simple-recorder.js → SimpleRecorderJs/recorder.js
+                   ↓
+                js/client.js → API Backend → Resultados
+```
+
 ## 🔧 Especificaciones Técnicas
 
 ### Configuración de Audio
@@ -42,20 +69,19 @@ Una aplicación web que utiliza inteligencia artificial para predecir el género
 ### Estructura del Proyecto
 ```
 FrontRecoGenVoz/
-├── index.html              # Página principal
-├── test-recorder.html      # Página de pruebas de grabación
-├── app.js                  # Lógica principal de la aplicación
-├── client.js               # Cliente para comunicación con API
-├── simple-recorder.js      # Grabador de audio personalizado
-├── styles.css              # Estilos de la aplicación
-├── test-api.html          # Pruebas de API
-├── SimpleRecorderJs/       # Librería local de grabación
-│   ├── js/
-│   │   ├── recorder.js     # Implementación del grabador
-│   │   └── app.js          # Ejemplo de uso
-│   ├── index.html          # Demo de SimpleRecorderJs
-│   └── style.css           # Estilos del demo
-└── README.md              # Este archivo
+├── index.html              # Página principal de la aplicación
+├── README.md               # Documentación del proyecto
+├── js/                     # Scripts JavaScript
+│   ├── app.js              # Lógica principal de la aplicación
+│   ├── client.js           # Cliente para comunicación con API
+│   └── simple-recorder.js  # Wrapper de alto nivel para grabación
+├── css/                    # Hojas de estilo
+│   └── styles.css          # Estilos principales de la aplicación
+├── test/                   # Páginas de prueba y testing
+│   ├── test-recorder.html  # Pruebas de funcionalidad de grabación
+│   └── test-api.html       # Pruebas de conectividad con API
+└── SimpleRecorderJs/       # Librería core de grabación
+    └── recorder.js         # Implementación base del grabador WAV
 ```
 
 ## 🎯 Uso de la Aplicación
@@ -82,7 +108,7 @@ FrontRecoGenVoz/
 ## 🔌 Configuración de la API
 
 ### API Endpoint
-La aplicación se conecta a una API backend para realizar las predicciones. Configure la URL en `client.js`:
+La aplicación se conecta a una API backend para realizar las predicciones. Configure la URL en `js/client.js`:
 
 ```javascript
 class GenderAPI {
@@ -111,7 +137,7 @@ class GenderAPI {
 ## 🛠️ Desarrollo y Personalización
 
 ### Modificar Configuración de Audio
-Edita las configuraciones en `app.js` y `test-recorder.html`:
+Edita las configuraciones en `js/app.js` y `test/test-recorder.html`:
 
 ```javascript
 const audioConfig = {
@@ -125,7 +151,7 @@ const audioConfig = {
 ```
 
 ### Personalizar Interfaz
-- **Estilos**: Modifica `styles.css` para cambiar la apariencia
+- **Estilos**: Modifica `css/styles.css` para cambiar la apariencia
 - **Colores**: Ajusta la paleta de colores en las variables CSS
 - **Iconos**: Cambia los emojis por iconos personalizados
 
@@ -138,14 +164,14 @@ const audioConfig = {
 ## 🧪 Pruebas
 
 ### Página de Pruebas
-Abre `test-recorder.html` para:
+Abre `test/test-recorder.html` para:
 - Probar la funcionalidad de grabación
 - Verificar la calidad del audio
 - Comprobar la metadata de los archivos WAV
 - Validar la configuración de audio
 
 ### Pruebas de API
-Usa `test-api.html` para:
+Usa `test/test-api.html` para:
 - Verificar la conectividad con la API
 - Probar endpoints individualmente
 - Validar formatos de respuesta
@@ -189,7 +215,7 @@ Usa `test-api.html` para:
 
 **Error: "API no disponible"**
 - Verifica que el servidor backend esté ejecutándose
-- Comprueba la URL de la API en `client.js`
+- Comprueba la URL de la API en `js/client.js`
 - Revisa la consola del navegador para errores de CORS
 
 **Audio de baja calidad**
@@ -236,9 +262,9 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 ## 👥 Créditos
 
-- **SimpleRecorderJs**: Librería de grabación personalizada
-- **Web Audio API**: Para procesamiento de audio
-- **Recorder.js**: Inspiración para la implementación
+- **SimpleRecorderJs**: Librería core de grabación de audio WAV
+- **Web Audio API**: Tecnología base para procesamiento de audio en navegadores
+- **Recorder.js**: Inspiración para la implementación de grabación
 
 ## 📞 Soporte
 
