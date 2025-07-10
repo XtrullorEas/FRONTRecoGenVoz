@@ -2,7 +2,7 @@
 
 [![Author](https://img.shields.io/badge/author-XtrullorEas-green)](https://github.com/XtrullorEas)
 
-![Avance del Juego 2D](assets/PyVoice-JSound.png)
+![Avance del Juego 2D](assets/PyVoice-JSound.jpeg)
 
 **Análisis de Género por Voz en Tiempo Real**
 
