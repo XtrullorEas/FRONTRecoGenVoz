@@ -1,4 +1,8 @@
-# 🐍PyVoice JSound⚡
+<h1 align="center"> 🐍PyVoice JSound⚡ </h1>
+
+[![Author](https://img.shields.io/badge/author-XtrullorEas-green)](https://github.com/XtrullorEas)
+
+![Avance del Juego 2D](assets/PyVoice-JSound.png)
 
 **Análisis de Género por Voz en Tiempo Real**
 
