@@ -289,7 +289,7 @@ class SpeechToTextManager {
     }
 
     // Función para reproducir TTS automáticamente según el género predicho
-    playTTSByGender(gender) {
+    async playTTSByGender(gender) {
         const textToSpeak = this.currentTranscript.trim();
         
         if (!textToSpeak) {
@@ -305,8 +305,8 @@ class SpeechToTextManager {
         // Seleccionar voz según el género
         this.selectVoiceByGender(gender);
 
-        // Mostrar GIF según el género
-        this.showGif(gender);
+        // Mostrar GIF según el género (ahora es async)
+        await this.showGif(gender);
 
         // Crear y configurar utterance
         this.currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
@@ -510,33 +510,70 @@ class SpeechToTextManager {
             this.gifContainer.appendChild(this.gifElement);
         }
 
-        // Event listeners para el GIF
-        this.gifElement.onerror = (e) => {
-            console.error('Error al cargar GIF:', e);
-            this.hideGif();
-        };
+        // Event listeners globales para el GIF (solo para logs generales)
+        this.gifElement.addEventListener('error', (e) => {
+            console.warn('GIF error event (general):', e.target.src);
+        });
+        
+        this.gifElement.addEventListener('load', (e) => {
+            console.log('GIF loaded successfully (general):', e.target.src);
+        });
     }
 
-    showGif(gender) {
+    async showGif(gender) {
         if (!this.gifElement || !this.gifContainer) return;
 
         // Obtener URL del GIF según el género
         const gifSrc = this.getGifUrl(gender);
         
+        // Validar que la URL no esté vacía
+        if (!gifSrc) {
+            console.warn('No se especificó URL para el GIF');
+            return;
+        }
+
+        console.log(`Intentando cargar GIF: ${gifSrc}`);
+        
+        // Verificar si el archivo existe antes de cargarlo
+        const fileExists = await this.checkFileExists(gifSrc);
+        if (!fileExists) {
+            console.error(`El archivo GIF no existe o no es accesible: ${gifSrc}`);
+            return;
+        }
+        
         // Configurar dimensiones específicas según el género
         this.adjustGifDimensions(gender);
         
-        // Configurar y mostrar GIF
-        this.gifElement.src = gifSrc;
-        this.gifContainer.style.display = 'block';
+        // Configurar un manejador de carga exitosa
+        const handleLoad = () => {
+            console.log(`GIF cargado exitosamente: ${gifSrc}`);
+            this.gifContainer.style.display = 'block';
+            
+            // Actualizar título
+            const title = this.gifContainer.querySelector('h3');
+            if (title) {
+                title.textContent = `Avatar ${gender === 'male' ? 'Masculino' : 'Femenino'}`;
+            }
+        };
         
-        // Actualizar título
-        const title = this.gifContainer.querySelector('h3');
-        if (title) {
-            title.textContent = `Avatar ${gender === 'male' ? 'Masculino' : 'Femenino'}`;
-        }
+        // Configurar manejador de error específico para esta carga
+        const handleError = () => {
+            console.error(`Error al cargar GIF específico: ${gifSrc}`);
+            // No llamar hideGif aquí para evitar bucles
+        };
+        
+        // Remover eventos previos
+        this.gifElement.onload = null;
+        this.gifElement.onerror = null;
+        
+        // Configurar nuevos eventos
+        this.gifElement.onload = handleLoad;
+        this.gifElement.onerror = handleError;
+        
+        // Configurar y cargar GIF
+        this.gifElement.src = gifSrc;
 
-        console.log(`Mostrando GIF ${gender === 'male' ? 'masculino' : 'femenino'}: ${gifSrc}`);
+        console.log(`Cargando GIF ${gender === 'male' ? 'masculino' : 'femenino'}: ${gifSrc}`);
     }
 
     adjustGifDimensions(gender) {
@@ -579,8 +616,17 @@ class SpeechToTextManager {
         if (this.gifContainer) {
             this.gifContainer.style.display = 'none';
         }
-        if (this.gifElement) {
+        if (this.gifElement && this.gifElement.src !== '') {
+            // Remover el evento onerror temporalmente para evitar bucles
+            const originalOnError = this.gifElement.onerror;
+            this.gifElement.onerror = null;
             this.gifElement.src = ''; // Limpiar la fuente para detener el GIF
+            // Restaurar el evento después de un breve delay
+            setTimeout(() => {
+                if (this.gifElement) {
+                    this.gifElement.onerror = originalOnError;
+                }
+            }, 200);
         }
         console.log('GIF oculto');
     }
@@ -608,5 +654,16 @@ class SpeechToTextManager {
         };
         
         return gender === 'male' ? defaultGifs.male : defaultGifs.female;
+    }
+
+    // Función para verificar si un archivo existe
+    async checkFileExists(url) {
+        try {
+            const response = await fetch(url, { method: 'HEAD' });
+            return response.ok;
+        } catch (error) {
+            console.warn(`No se pudo verificar la existencia del archivo: ${url}`);
+            return false;
+        }
     }
 }
