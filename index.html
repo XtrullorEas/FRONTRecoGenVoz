@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predictor de Género por Voz</title>
+    <title>🐍PyVoice JSound⚡| Análisis de Género por Voz en Tiempo Real</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🐍PyVoice JSound⚡</h1>
-            <p>Análisis de Género por Voz en Tiempo Real</p>
+            <p>Análisis de Género por Voz en Tiempo Real con IA</p>
             <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.9;">
                 👨‍💻 Creado por: <strong>Elias Morote Loli</strong>
             </p>
@@ -56,8 +56,8 @@
 
             <!-- Sección de Grabación -->
             <div class="section">
-                <h3>🎙️ Grabar desde Micrófono + Reconocimiento de Voz</h3>
-                <p style="margin-bottom: 20px; color: #666;">Graba audio en WAV y obtén la transcripción en tiempo real</p>
+                <h3>🎙️ PyVoice JSound: Grabación + Reconocimiento de Voz</h3>
+                <p style="margin-bottom: 20px; color: #666;">Graba audio en WAV y obtén la transcripción en tiempo real con IA</p>
                 
                 <div class="record-controls">
                     <button class="btn record-btn" id="startRecordBtn">🔴 Iniciar Grabación + Reconocimiento</button>
@@ -97,7 +97,7 @@
                     </div>
                 </div>
                 
-                <!-- Reproductor para audio grabado -->
+                <!-- Reproductor para audio grabado (oculto - funcionalidad automática) -->
                 <div class="audio-player" id="recordedAudioPlayer" style="display: none;">
                     <h4>🎵 Audio Grabado</h4>
                     <audio controls id="recordedAudioElement" style="width: 100%; margin: 10px 0;">
@@ -106,15 +106,15 @@
                 </div>
                 
                 <div class="record-info" style="margin-top: 15px; padding: 15px; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 10px; color: #0d47a1;">
-                    <strong>ℹ️ Instrucciones:</strong>
+                    <strong>ℹ️ Instrucciones de PyVoice JSound:</strong>
                     <ul style="margin-top: 10px; padding-left: 20px;">
                         <li>Haz clic en "Iniciar Grabación + Reconocimiento" para comenzar</li>
-                        <li>Se iniciará la grabación WAV y el reconocimiento de voz simultáneamente</li>
+                        <li>PyVoice JSound iniciará la grabación WAV y el reconocimiento de voz simultáneamente</li>
                         <li>Habla claramente hacia el micrófono</li>
                         <li>El texto se transcribe automáticamente en segundo plano</li>
                         <li>Haz clic en "Detener Grabación" cuando termines</li>
-                        <li>Usa "Predecir Género" para analizar el audio</li>
-                        <li><strong>🔊 Automático:</strong> Después de la predicción, el texto se reproducirá automáticamente con la voz correspondiente al género predicho</li>
+                        <li>Usa "Predecir Género" para que la IA analice el audio</li>
+                        <li><strong>🔊 Automático:</strong> Después de la predicción, PyVoice JSound reproducirá automáticamente el texto con la voz correspondiente al género predicho</li>
                     </ul>
                 </div>
             </div>
@@ -122,12 +122,12 @@
             <!-- Loading -->
             <div class="loading" id="loading">
                 <div class="spinner"></div>
-                <p>Procesando audio...</p>
+                <p>PyVoice JSound procesando audio con IA...</p>
             </div>
 
             <!-- Resultados -->
             <div class="result-section" id="results" style="display: none;">
-                <h3>📊 Resultados de la Predicción</h3>
+                <h3>📊 Resultados de PyVoice JSound IA</h3>
                 <div class="result-item">
                     <span class="result-label">Género Predicho:</span>
                     <span class="result-value" id="predictedGender">-</span>
@@ -164,6 +164,7 @@
     </div>
 
     <script src="SimpleRecorderJs/recorder.js"></script>
+    <script src="js/audio-config.js"></script>
     <script src="js/simple-recorder.js"></script>
     <script src="js/speech-to-text.js"></script>
     <script src="js/client.js"></script>

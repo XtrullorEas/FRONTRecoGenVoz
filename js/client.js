@@ -7,7 +7,7 @@ class GenderAPI {
         // API Render (producción)
         //this.apiUrl = apiUrl || 'https://apirecogenvoz.onrender.com';
         
-        console.log('🌐 GenderAPI inicializada con URL:', this.apiUrl);
+        console.log('🌐 RecoGenVozAPI inicializada con URL:', this.apiUrl);
     }
 
     async checkHealth() {

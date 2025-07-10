@@ -1,17 +1,18 @@
-# 🎤 Predictor de Género por Voz
+# 🐍PyVoice JSound⚡
 
-Una aplicación web avanzada que utiliza inteligencia artificial para predecir el género basado en archivos de audio WAV. La aplicación integra reconocimiento de voz en tiempo real, text-to-speech automático y avatares GIF interactivos.
+**Análisis de Género por Voz en Tiempo Real**
 
-## 📋 Características Principales
+Aplicación web con IA que predice el género basado en audio WAV. Integra grabación, reconocimiento de voz, text-to-speech automático y avatares GIF interactivos.
 
-- **🎙️ Grabación + Reconocimiento Unificado**: Graba audio y reconoce voz simultáneamente
-- **🎯 Predicción IA**: Utiliza modelos de machine learning para predecir el género
-- **🔊 Text-to-Speech Automático**: Reproduce automáticamente el texto con voz adecuada al género
-- **🎭 Avatares GIF Dinámicos**: Muestra avatares animados durante la reproducción TTS
-- **📊 Resultados detallados**: Muestra probabilidades y nivel de confianza
-- **🎵 Reproducción**: Permite reproducir el audio antes del análisis
-- **💾 Descarga**: Descarga archivos WAV grabados con metadata completa
-- **📱 Diseño Responsivo**: Interfaz adaptable para diferentes dispositivos
+## ✨ Características Principales
+
+- **🎙️ Grabación + Reconocimiento**: Graba WAV y reconoce voz simultáneamente
+- **🎯 Predicción IA**: Modelos ML para predecir género con probabilidades
+- **🔊 TTS Automático**: Reproduce texto con voz adecuada al género predicho
+- **🎭 Avatares GIF**: Animaciones dinámicas durante reproducción TTS
+- **📊 Resultados Detallados**: Probabilidades y nivel de confianza
+- **💾 Descarga WAV**: Archivos con metadata completa
+- **📱 Diseño Responsivo**: Interfaz adaptable
 
 ## ✨ Características Avanzadas
 
@@ -36,144 +37,102 @@ Una aplicación web avanzada que utiliza inteligencia artificial para predecir e
 - **Visualización durante TTS**: Aparecen solo durante la reproducción
 - **Personalización**: API para configurar GIFs personalizados
 
-## 🚀 Flujo de Trabajo
+## � Flujo de Trabajo
 
-1. **🎙️ Iniciar Grabación**: 
-   - Haz clic en "Iniciar Grabación"
-   - Se activan automáticamente tanto la grabación como el reconocimiento de voz
-   - El texto hablado se transcribe en segundo plano
+1. **🎙️ Iniciar**: Grabación + reconocimiento de voz simultáneo
+2. **⏹️ Detener**: Completa grabación y transcripción 
+3. **🎯 Predicción**: IA analiza audio y determina género
+4. **🎭 Reproducción**: TTS automático con voz apropiada + avatar GIF
+5. **📊 Resultados**: Probabilidades masculino/femenino con opciones adicionales
 
-2. **⏹️ Detener Grabación**:
-   - Haz clic en "Detener Grabación"
-   - Se completa la grabación y transcripción
+## ⚙️ Arquitectura del Sistema
 
-3. **🔍 Predicción Automática**:
-   - El sistema envía el audio al modelo IA
-   - Se obtiene la predicción de género con probabilidades
+### Módulos Principales
+- **`app.js`**: Lógica principal y coordinación entre componentes
+- **`client.js`**: Cliente HTTP para comunicación con API backend
+- **`simple-recorder.js`**: Grabación de audio WAV con metadata
+- **`speech-to-text.js`**: Reconocimiento de voz, TTS y avatares GIF
+- **`audio-config.js`**: Configuración centralizada de audio
 
-4. **🎭 Reproducción Automática**:
-   - **Text-to-Speech**: Se reproduce automáticamente la transcripción
-   - **Avatar GIF**: Aparece el avatar correspondiente al género predicho
-   - **Voz Inteligente**: Se selecciona automáticamente la voz apropiada
-
-5. **📊 Visualización de Resultados**:
-   - Probabilidades de masculino/femenino
-   - Nivel de confianza de la predicción
-   - Opciones de descarga y reproducción manual
-
-## 🏗️ Arquitectura del Sistema
-
-### Organización de Archivos
-El proyecto está organizado de manera modular para facilitar el mantenimiento y desarrollo:
-
-#### 📁 **Directorio `/js/`**
-- **`app.js`**: Lógica principal, coordinación entre componentes y funciones globales
-- **`client.js`**: Cliente HTTP para comunicación con la API backend de predicción
-- **`simple-recorder.js`**: Wrapper de alto nivel que abstrae la funcionalidad de grabación
-- **`speech-to-text.js`**: Manejo de reconocimiento de voz, TTS y avatares GIF
-
-#### 📁 **Directorio `/assets/`**
-- **`hombregif.gif`**: Avatar masculino para reproducción TTS
-- **`mujergif.gif`**: Avatar femenino para reproducción TTS
-
-#### 🎨 **Directorio `/css/`**
-- **`styles.css`**: Estilos principales + modal responsivo para GIFs
-
-#### 🧪 **Directorio `/test/`**
-- **`test-recorder.html`**: Página dedicada para probar funcionalidades de grabación
-- **`test-api.html`**: Herramientas para verificar conectividad y respuestas de la API
-
-#### ⚙️ **Directorio `/SimpleRecorderJs/`**
-- **`recorder.js`**: Librería core compilada que maneja Web Audio API y generación de WAV
-
-### Flujo de Datos Actualizado
+### Flujo de Datos
 ```
-Usuario → index.html → js/app.js → js/simple-recorder.js → SimpleRecorderJs/recorder.js
-                   ↓                           ↓
-                js/client.js → API Backend → js/speech-to-text.js
-                                          ↓
-                              Resultados + TTS + Avatar GIF
+Usuario → Grabación → IA Backend → TTS + Avatar → Resultados
 ```
 
-## 🔧 Especificaciones Técnicas
+## � Especificaciones Técnicas
 
-### Configuración de Audio
-- **Sample Rate**: 48.000 Hz (48 kHz)
-- **Canales**: 1 (Mono)
-- **Bit Depth**: 16 bits
-- **Bit Rate**: 768 kbps
-- **Formato**: WAV con metadata completa
+### Audio
+- **Formato**: WAV PCM, 48 kHz, Mono, 16 bits, 768 kbps
+- **Grabación**: SimpleRecorderJs + Web Audio API
+- **Procesamiento**: Echo cancellation, noise suppression, auto gain
 
-### Características de Grabación
-- **Echo Cancellation**: Activado
-- **Noise Suppression**: Activado
-- **Auto Gain Control**: Activado
-- **Grabación local**: Utiliza SimpleRecorderJs (sin dependencias externas)
+### APIs
+- **Speech Recognition**: Web Speech API para STT
+- **Speech Synthesis**: SpeechSynthesis API para TTS  
+- **MediaRecorder**: Para grabación local
+- **Fetch**: Comunicación con backend IA
 
-### APIs y Tecnologías
-- **Web Speech API**: Para reconocimiento de voz (Speech-to-Text)
-- **SpeechSynthesis API**: Para síntesis de voz (Text-to-Speech)
-- **MediaRecorder API**: Para grabación de audio
-- **Fetch API**: Para comunicación con el backend
-- **Canvas API**: Para análisis de archivos WAV
+### TTS por Género
+- **Masculino**: Voz "Raul" (ES) → fallback español → inglés
+- **Femenino**: Voz "Sabina" (ES) → fallback español → inglés
 
-### Configuración de Voces TTS
-El sistema prioriza voces en español con fallback inteligente:
+### Avatares
+- **GIFs responsive**: `assets/hombre-avatar.gif`, `assets/mujer-avatar.gif`
+- **Modal centrado**: Escalado automático manteniendo proporción
 
-```javascript
-// Orden de prioridad para voz masculina
-1. "Microsoft Raul - Spanish (Spain)"
-2. Cualquier voz española masculina
-3. Voz inglesa masculina de respaldo
+## 🚀 Instalación
 
-// Orden de prioridad para voz femenina
-1. "Microsoft Sabina - Spanish (Spain)"
-2. Cualquier voz española femenina
-3. Voz inglesa femenina de respaldo
+### Requisitos
+- Servidor web (Apache/Nginx/XAMPP)
+- Navegador moderno con Web Audio API
+- Micrófono para grabación
+- Conexión a internet para voces TTS
+
+### Configuración
+1. Clonar repositorio en servidor web
+2. Verificar avatares GIF en `/assets/`
+3. Configurar URL de API en `client.js`
+4. Abrir `index.html`
+
+### Estructura del Proyecto
+```
+🐍PyVoice JSound⚡/
+├── index.html                 # Página principal
+├── js/
+│   ├── app.js                # Lógica principal
+│   ├── client.js             # Cliente API
+│   ├── simple-recorder.js    # Grabación WAV
+│   ├── speech-to-text.js     # STT/TTS/GIFs
+│   └── audio-config.js       # Configuración centralizada
+├── assets/
+│   ├── hombre-avatar.gif     # Avatar masculino
+│   └── mujer-avatar.gif      # Avatar femenino
+├── css/styles.css            # Estilos principales
+└── SimpleRecorderJs/         # Librería de grabación
 ```
 
-### Sistema Responsivo de GIFs
-- **Detección automática de dimensiones**: Los GIFs se cargan y escalan dinámicamente
-- **Preservación de aspect ratio**: Mantiene proporciones originales
-- **Adaptación a viewport**: Se ajusta al 90% del ancho/alto de pantalla
-- **Modal centrado**: Posicionamiento absoluto con flexbox para centrado perfecto
+---
 
-## 🚀 Instalación y Configuración
+**🐍PyVoice JSound⚡** - *Análisis de Género por Voz en Tiempo Real*  
+👨‍💻 **Creado por**: Elias Morote Loli
 
-### Requisitos Previos
-- Servidor web (Apache/Nginx) o servidor local
-- Navegador moderno con soporte para Web Audio API y Web Speech API
-- Micrófono (para grabación y reconocimiento de voz)
-- Conexión a internet (para voces TTS de Microsoft)
+## 🎵 Configuración de Audio Centralizada
 
-### Instalación
-1. Clona o descarga el repositorio
-2. Coloca los archivos en tu servidor web
-3. Asegúrate de que las imágenes GIF estén en `/assets/`
-4. Configura la API backend (ver sección API)
-5. Abre `index.html` en tu navegador
+### ✅ Nueva Arquitectura (v2.0)
+La aplicación ahora utiliza **configuración centralizada** para eliminar duplicación:
 
-### Estructura del Proyecto Actualizada
-```
-FrontRecoGenVoz/
-├── index.html              # Página principal unificada
-├── README.md               # Documentación completa del proyecto
-├── js/                     # Scripts JavaScript
-│   ├── app.js              # Lógica principal + funciones globales
-│   ├── client.js           # Cliente para comunicación con API
-│   ├── simple-recorder.js  # Wrapper de alto nivel para grabación
-│   └── speech-to-text.js   # STT, TTS y gestión de avatares
-├── css/                    # Hojas de estilo
-│   └── styles.css          # Estilos principales + modal GIF responsivo
-├── assets/                 # Recursos multimedia
-│   ├── hombregif.gif       # Avatar masculino (personalizable)
-│   └── mujergif.gif        # Avatar femenino (personalizable)
-├── test/                   # Páginas de prueba y testing
-│   ├── test-recorder.html  # Pruebas de funcionalidad de grabación
-│   └── test-api.html       # Pruebas de conectividad con API
-└── SimpleRecorderJs/       # Librería core de grabación
-    └── recorder.js         # Implementación base del grabador WAV
-```
+- **`audio-config.js`**: Una sola fuente de verdad para toda la configuración de audio
+- **Configuración unificada**: Sample rate, bit depth, canales, etc. en un solo lugar
+- **Métodos helper**: Cálculo automático de bit rate, generación de configuración para APIs
+- **Ajuste automático**: Se adapta al sample rate real del AudioContext del navegador
+- **Compatibilidad total**: El código existente sigue funcionando sin cambios
+
+### 📖 Documentación Detallada
+Ver [`CONFIGURACION-AUDIO.md`](./CONFIGURACION-AUDIO.md) para:
+- ❓ Por qué se centralizó la configuración
+- 🔧 Arquitectura antes vs después
+- ✅ Beneficios y compatibilidad
+- 🚀 Extensibilidad futura
 
 ## 🎯 Uso de la Aplicación
 

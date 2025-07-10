@@ -10,30 +10,21 @@ class SimpleRecorder {
         this.audioUrl = null;
         this.isRecording = false;
         
-        // Configuración de audio con metadata
+        // Usar configuración centralizada como base y permitir sobrescritura
         this.config = {
-            sampleRate: config.sampleRate || 44100,
-            channelCount: config.channelCount || 2,
-            bitDepth: config.bitDepth || 16,
-            bitRate: 0,
-            echoCancellation: config.echoCancellation !== false,
-            noiseSuppression: config.noiseSuppression !== false,
-            autoGainControl: config.autoGainControl !== false,
-            ...config
+            ...AudioConfig,
+            ...config  // Las configuraciones pasadas tienen prioridad
         };
         
         // Calcular velocidad de bits
-        this.config.bitRate = this.config.sampleRate * this.config.channelCount * this.config.bitDepth;
+        this.config.bitRate = this.config.getBitRate();
         
         this.logConfig();
     }
     
     logConfig() {
         console.log('🎤 SimpleRecorder configurado con metadata:');
-        console.log(`- Velocidad de muestra: ${this.config.sampleRate} Hz`);
-        console.log(`- Canales: ${this.config.channelCount} (${this.config.channelCount === 1 ? 'Mono' : 'Estéreo'})`);
-        console.log(`- Profundidad de bits: ${this.config.bitDepth} bits`);
-        console.log(`- Velocidad de bits: ${this.config.bitRate} bps (${(this.config.bitRate / 1000).toFixed(1)} kbps)`);
+        console.log(`- ${this.config.getDescription()}`);
     }
     
     async initialize() {
@@ -44,20 +35,9 @@ class SimpleRecorder {
                 return false;
             }
             
-            console.log('🎤 Inicializando grabación con SimpleRecorderJs local...');
+            // Obtener stream del micrófono con configuración centralizada
+            this.stream = await navigator.mediaDevices.getUserMedia(this.config.getMediaConfig());
             
-            // Obtener stream del micrófono con configuración específica
-            this.stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: {
-                    sampleRate: this.config.sampleRate,
-                    channelCount: this.config.channelCount,
-                    echoCancellation: this.config.echoCancellation,
-                    noiseSuppression: this.config.noiseSuppression,
-                    autoGainControl: this.config.autoGainControl
-                }
-            });
-            
-            console.log('✅ Micrófono configurado correctamente');
             return true;
             
         } catch (error) {
@@ -84,9 +64,14 @@ class SimpleRecorder {
                 numChannels: this.config.channelCount
             });
             
-            console.log('✅ AudioContext configurado con SimpleRecorderJs local');
-            console.log(`📊 Sample Rate del contexto: ${this.audioContext.sampleRate} Hz`);
-            console.log(`📊 Configuración del recorder: ${this.config.channelCount} canales`);
+            //console.log('✅ AudioContext configurado con SimpleRecorderJs local');
+            //console.log(`📊 Sample Rate del contexto: ${this.audioContext.sampleRate} Hz`);
+            
+            // Actualizar configuración con el sample rate real del AudioContext
+            this.config.updateSampleRate(this.audioContext.sampleRate);
+            this.config.bitRate = this.config.getBitRate();
+            
+            //console.log(`📊 Configuración del recorder: ${this.config.channelCount} canales`);
         }
     }
     
@@ -115,7 +100,6 @@ class SimpleRecorder {
             this.recorder.record();
             this.isRecording = true;
             
-            console.log('🔴 Grabación iniciada con SimpleRecorderJs local');
             return true;
             
         } catch (error) {
@@ -136,8 +120,6 @@ class SimpleRecorder {
                 this.recorder.stop();
                 this.isRecording = false;
                 
-                console.log('⏹️ Grabación detenida');
-                
                 // Exportar como WAV usando SimpleRecorderJs
                 this.recorder.exportWAV((blob) => {
                     if (!blob || blob.size === 0) {
@@ -149,8 +131,6 @@ class SimpleRecorder {
                     // Guardar blob y crear URL
                     this.audioBlob = blob;
                     this.audioUrl = URL.createObjectURL(blob);
-                    
-                    console.log('✅ Archivo WAV generado correctamente con SimpleRecorderJs');
                     
                     // Mostrar información del archivo con metadata
                     this.displayFileInfo(blob);
@@ -174,18 +154,8 @@ class SimpleRecorder {
         const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
         
         // Calcular duración estimada
-        const bytesPerSecond = (this.config.sampleRate * this.config.channelCount * this.config.bitDepth) / 8;
+        const bytesPerSecond = this.config.getBitRate() / 8;
         const estimatedDuration = Math.max(0, (sizeInBytes - 44) / bytesPerSecond);
-        
-        console.log('📊 Información del archivo WAV:');
-        console.log(`- Tamaño: ${sizeInBytes} bytes (${sizeInKB} KB / ${sizeInMB} MB)`);
-        console.log(`- Duración estimada: ${estimatedDuration.toFixed(2)} segundos`);
-        console.log(`- Tipo MIME: ${blob.type}`);
-        console.log(`- Formato: WAV PCM`);
-        console.log(`- Velocidad de muestra: ${this.config.sampleRate} Hz`);
-        console.log(`- Canales: ${this.config.channelCount} (${this.config.channelCount === 1 ? 'Mono' : 'Estéreo'})`);
-        console.log(`- Profundidad de bits: ${this.config.bitDepth} bits`);
-        console.log(`- Velocidad de bits: ${this.config.bitRate} bps (${(this.config.bitRate / 1000).toFixed(1)} kbps)`);
     }
     
     analyzeWAVFile(blob) {
@@ -207,17 +177,6 @@ class SimpleRecorder {
                 const blockAlign = view.getUint16(32, true);
                 const bitsPerSample = view.getUint16(34, true);
                 
-                console.log('🔍 Análisis del header WAV:');
-                console.log(`- Firma RIFF: ${riff}`);
-                console.log(`- Tamaño de archivo: ${fileSize} bytes`);
-                console.log(`- Formato: ${wave}`);
-                console.log(`- Formato de audio: ${audioFormat} (${audioFormat === 1 ? 'PCM' : 'Desconocido'})`);
-                console.log(`- Canales: ${numChannels}`);
-                console.log(`- Velocidad de muestra: ${sampleRate} Hz`);
-                console.log(`- Velocidad de bits: ${byteRate} bytes/seg`);
-                console.log(`- Alineación de bloque: ${blockAlign} bytes`);
-                console.log(`- Bits por muestra: ${bitsPerSample} bits`);
-                
                 // Validar metadata
                 const expectedByteRate = (sampleRate * numChannels * bitsPerSample) / 8;
                 const expectedBlockAlign = (numChannels * bitsPerSample) / 8;
@@ -232,21 +191,6 @@ class SimpleRecorder {
                     bitsPerSample === this.config.bitDepth &&
                     byteRate === expectedByteRate &&
                     blockAlign === expectedBlockAlign;
-                
-                console.log(`${isValid ? '✅' : '❌'} Metadata WAV ${isValid ? 'válida' : 'inválida'}`);
-                
-                if (!isValid) {
-                    console.warn('⚠️ Diferencias encontradas:');
-                    if (numChannels !== this.config.channelCount) {
-                        console.warn(`- Canales: esperado ${this.config.channelCount}, obtenido ${numChannels}`);
-                    }
-                    if (sampleRate !== this.config.sampleRate) {
-                        console.warn(`- Sample Rate: esperado ${this.config.sampleRate}, obtenido ${sampleRate}`);
-                    }
-                    if (bitsPerSample !== this.config.bitDepth) {
-                        console.warn(`- Bit Depth: esperado ${this.config.bitDepth}, obtenido ${bitsPerSample}`);
-                    }
-                }
                 
             } catch (error) {
                 console.error('❌ Error al analizar archivo WAV:', error);
@@ -266,7 +210,7 @@ class SimpleRecorder {
         const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
         
         // Calcular duración estimada
-        const bytesPerSecond = (this.config.sampleRate * this.config.channelCount * this.config.bitDepth) / 8;
+        const bytesPerSecond = this.config.getBitRate() / 8;
         const estimatedDuration = Math.max(0, (sizeInBytes - 44) / bytesPerSecond);
         
         return {

@@ -1,18 +1,8 @@
 // Inicializar la aplicación
 const api = new GenderAPI();
 
-// Configuración de audio para metadata WAV
-const audioConfig = {
-    sampleRate: 48000,        // 48 kHz para alta calidad
-    channelCount: 1,          // Mono
-    bitDepth: 16,             // 16 bits
-    echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: true
-};
-
-// Inicializar grabador con configuración de metadata
-const recorder = new SimpleRecorder(audioConfig);
+// Inicializar grabador con configuración centralizada
+const recorder = new SimpleRecorder();
 
 // Inicializar manager de speech-to-text
 let speechManager = null;
@@ -56,12 +46,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Hacer speechManager disponible globalmente
     window.speechManager = speechManager;
     
-    // Mostrar configuración de audio
-    console.log('🎤 Aplicación iniciada con configuración de audio:');
-    console.log(`- Sample Rate: ${audioConfig.sampleRate} Hz`);
-    console.log(`- Canales: ${audioConfig.channelCount} (${audioConfig.channelCount === 1 ? 'Mono' : 'Estéreo'})`);
-    console.log(`- Bit Depth: ${audioConfig.bitDepth} bits`);
-    console.log(`- Bit Rate: ${audioConfig.sampleRate * audioConfig.channelCount * audioConfig.bitDepth} bps`);
+    // Mostrar configuración de audio usando la configuración centralizada
+    //console.log('🎤 Aplicación iniciada con configuración de audio:');
+    //AudioConfig.logConfig();
 });
 
 async function checkAPIConnection() {
@@ -69,7 +56,6 @@ async function checkAPIConnection() {
     statusDetails.textContent = 'Conectando con la API...';
     
     try {
-        console.log('Iniciando verificación de conexión...');
         const status = await api.checkHealth();
         const isLocalAPI = api.apiUrl.includes('127.0.0.1') || api.apiUrl.includes('localhost');
         const apiType = isLocalAPI ? 'Local' : 'Render';
@@ -155,6 +141,13 @@ function setupRecordingEvents() {
     
     playRecordedBtn.addEventListener('click', () => {
         const recordedAudioElement = document.getElementById('recordedAudioElement');
+        const recordedAudioPlayer = document.getElementById('recordedAudioPlayer');
+        
+        // Mostrar el reproductor solo cuando se hace clic en reproducir
+        if (recordedAudioPlayer) {
+            recordedAudioPlayer.style.display = 'block';
+        }
+        
         playAudio(recordedAudioElement);
     });
     
@@ -347,51 +340,44 @@ function setupAudioPlayer(file, audioElement, playerContainer) {
     const audioUrl = URL.createObjectURL(file);
     audioElement.src = audioUrl;
     
-    // Mostrar el reproductor
-    playerContainer.style.display = 'block';
-    
-    // Agregar información de depuración
-    console.log('Configurando reproductor de audio:');
-    console.log('- Nombre del archivo:', file.name);
-    console.log('- Tamaño:', file.size, 'bytes');
-    console.log('- Tipo:', file.type);
-    console.log('- URL:', audioUrl);
-    
-    // Eventos para depuración
-    audioElement.addEventListener('loadstart', () => {
-        console.log('Audio: Comenzando a cargar');
-    });
-    
-    audioElement.addEventListener('loadeddata', () => {
-        console.log('Audio: Datos cargados');
-        console.log('- Duración:', audioElement.duration, 'segundos');
-        console.log('- ¿Puede reproducir?:', audioElement.canPlayType('audio/wav'));
-    });
-    
-    audioElement.addEventListener('canplay', () => {
-        console.log('Audio: Puede reproducir');
-    });
-    
-    audioElement.addEventListener('error', (e) => {
-        console.error('Error en el audio:', e);
-        console.error('Código de error:', audioElement.error?.code);
-        console.error('Mensaje de error:', audioElement.error?.message);
-    });
-    
-    audioElement.addEventListener('play', () => {
-        console.log('Audio: Reproduciendo');
-    });
-    
-    audioElement.addEventListener('pause', () => {
-        console.log('Audio: Pausado');
-    });
+    // No mostrar automáticamente el reproductor para audio grabado
+    // Solo configurar el elemento sin mostrarlo
+    if (playerContainer.id === 'recordedAudioPlayer') {
+        playerContainer.style.display = 'none'; // Mantener oculto
+    } else {
+        // Para otros reproductores (archivos subidos), mostrar normalmente
+        playerContainer.style.display = 'block';
+    }
 }
 
 function playAudio(audioElement) {
     if (audioElement.paused) {
         audioElement.play();
+        
+        // Si es el audio grabado, agregar evento para ocultar cuando termine
+        if (audioElement.id === 'recordedAudioElement') {
+            const recordedAudioPlayer = document.getElementById('recordedAudioPlayer');
+            
+            // Evento para ocultar cuando termine la reproducción
+            const handleEnded = () => {
+                if (recordedAudioPlayer) {
+                    recordedAudioPlayer.style.display = 'none';
+                }
+                audioElement.removeEventListener('ended', handleEnded);
+            };
+            
+            audioElement.addEventListener('ended', handleEnded);
+        }
     } else {
         audioElement.pause();
+        
+        // Si es el audio grabado y se pausa, ocultarlo también
+        if (audioElement.id === 'recordedAudioElement') {
+            const recordedAudioPlayer = document.getElementById('recordedAudioPlayer');
+            if (recordedAudioPlayer) {
+                recordedAudioPlayer.style.display = 'none';
+            }
+        }
     }
 }
 

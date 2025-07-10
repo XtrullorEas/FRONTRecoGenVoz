@@ -326,13 +326,11 @@ class SpeechToTextManager {
             this.isSpeaking = true;
             this.isPaused = false;
             console.log(`Reproduciendo TTS con voz ${gender === 'male' ? 'masculina' : 'femenina'}: "${textToSpeak}"`);
-            console.log('GIF sincronizado con TTS iniciado');
         };
 
         this.currentUtterance.onend = () => {
             this.isSpeaking = false;
             this.isPaused = false;
-            console.log('TTS automático terminado');
             
             // Ocultar GIF cuando termine el TTS
             setTimeout(() => {
@@ -428,7 +426,6 @@ class SpeechToTextManager {
         // Actualizar el selector
         if (selectedVoiceIndex !== null) {
             this.voiceSelect.value = selectedVoiceIndex;
-            console.log(`Voz seleccionada para ${gender === 'male' ? 'hombre' : 'mujer'}: ${this.voices[selectedVoiceIndex].name}`);
         } else {
             console.warn('No se pudo seleccionar una voz apropiada');
         }
@@ -509,15 +506,6 @@ class SpeechToTextManager {
             this.gifContainer.appendChild(closeBtn);
             this.gifContainer.appendChild(this.gifElement);
         }
-
-        // Event listeners globales para el GIF (solo para logs generales)
-        this.gifElement.addEventListener('error', (e) => {
-            console.warn('GIF error event (general):', e.target.src);
-        });
-        
-        this.gifElement.addEventListener('load', (e) => {
-            console.log('GIF loaded successfully (general):', e.target.src);
-        });
     }
 
     async showGif(gender) {
@@ -531,8 +519,6 @@ class SpeechToTextManager {
             console.warn('No se especificó URL para el GIF');
             return;
         }
-
-        console.log(`Intentando cargar GIF: ${gifSrc}`);
         
         // Verificar si el archivo existe antes de cargarlo
         const fileExists = await this.checkFileExists(gifSrc);
@@ -546,7 +532,6 @@ class SpeechToTextManager {
         
         // Configurar un manejador de carga exitosa
         const handleLoad = () => {
-            console.log(`GIF cargado exitosamente: ${gifSrc}`);
             this.gifContainer.style.display = 'block';
             
             // Actualizar título
@@ -572,8 +557,6 @@ class SpeechToTextManager {
         
         // Configurar y cargar GIF
         this.gifElement.src = gifSrc;
-
-        console.log(`Cargando GIF ${gender === 'male' ? 'masculino' : 'femenino'}: ${gifSrc}`);
     }
 
     adjustGifDimensions(gender) {
@@ -608,8 +591,6 @@ class SpeechToTextManager {
             display: block;
             margin: 0 auto;
         `;
-
-        console.log(`GIF ${gender} ajustado a: ${finalWidth.toFixed(0)}x${finalHeight.toFixed(0)}px (escala: ${scale.toFixed(2)})`);
     }
 
     hideGif() {
@@ -628,7 +609,6 @@ class SpeechToTextManager {
                 }
             }, 200);
         }
-        console.log('GIF oculto');
     }
 
     // Función para configurar GIFs personalizados
